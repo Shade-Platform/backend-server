@@ -1,0 +1,40 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shade_server
+    environment:
+      - DB_HOST=shade_mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - DB_NAME=mydb
+    ports:
+      - "8080:8080"
+    depends_on:
+      - shade_mysql
+    volumes:
+      - .:/app:Z
+    networks:
+      - shade_network
+
+  shade_mysql:
+    image: mysql:8.0
+    container_name: mysql_db
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: mydb
+      MYSQL_PASSWORD: password
+    volumes:
+      - shade_mysql_data:/var/lib/mysql
+    networks:
+      - shade_network
+
+networks:
+  shade_network:
+    driver: bridge
+
+volumes:
+  shade_mysql_data:
+    driver: local
