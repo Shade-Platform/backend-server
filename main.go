@@ -6,6 +6,7 @@ import (
 	"shade_web_server/infrastructure"
 	"shade_web_server/routers"
 
+	"github.com/gorilla/handlers"
 	"github.com/joho/godotenv"
 )
 
@@ -27,7 +28,7 @@ func main() {
 
 	// Initialize the router
 	// r := routers.InitializeUsersRouter(dbConn)
-	
+
 	// Initialize the cluster connection
 	clientset, err := infrastructure.NewClusterConnection()
 	if err != nil {
@@ -38,6 +39,12 @@ func main() {
 	r := routers.InitializeContainersRouter(clientset)
 
 	// Start the server
+
+	corsOptions := handlers.CORS(
+		handlers.AllowedOrigins([]string{"*"}), // Change "*" to specific origins if needed
+		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
+		handlers.AllowedHeaders([]string{"Content-Type", "application/json"}),
+	)(r)
 	log.Println("Server running on :8080")
-	log.Fatal(http.ListenAndServe(":8080", r))
+	log.Fatal(http.ListenAndServe(":8080", corsOptions))
 }

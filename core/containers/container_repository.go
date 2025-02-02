@@ -52,6 +52,11 @@ func (cluster *KubernetesContainerRepository) Create(container *Container) (*Con
 		fmt.Printf("Created namespace %q.\n", namespace.Name)
 	}
 
+	// Name - deployment?
+	// Labels
+	// Name for the container - test
+	// Port - service to be attached
+
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-deployment",
@@ -76,7 +81,7 @@ func (cluster *KubernetesContainerRepository) Create(container *Container) (*Con
 							Image: container.ContainerTag,
 							Ports: []apiv1.ContainerPort{
 								{
-									ContainerPort: 80,
+									ContainerPort: container.MappedPort,
 									Name:          "test-port",
 								},
 							},
@@ -107,8 +112,8 @@ func (cluster *KubernetesContainerRepository) Create(container *Container) (*Con
 			Ports: []apiv1.ServicePort{
 				{
 					Protocol:   apiv1.ProtocolTCP,
-					Port:       80,
-					TargetPort: intstr.FromInt(80),
+					Port:       container.MappedPort,
+					TargetPort: intstr.FromInt32(container.MappedPort),
 				},
 			},
 		},

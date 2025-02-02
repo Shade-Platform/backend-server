@@ -11,15 +11,16 @@ func NewContainerService(repo ContainerRepository) *ContainerService {
 }
 
 // CreateContainer handles the creation of a new user.
-func (s *ContainerService) CreateContainer(username, containerTag string) (*Container, error) {
+func (s *ContainerService) CreateContainer(username, containerTag  string, mappedPort int32) (*Container, error) {
 	// Create a new container instance
-	user := &Container{
+	container := &Container{
 		UserName:     username,
 		ContainerTag: containerTag,
+		MappedPort: mappedPort,
 	}
 
 	// Push the container to the cluster
-	createdContainer, err := s.ContainerRepo.Create(user)
+	createdContainer, err := s.ContainerRepo.Create(container)
 	if err != nil {
 		return nil, err
 	}

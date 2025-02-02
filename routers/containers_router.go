@@ -24,8 +24,12 @@ func InitializeContainersRouter(clientset *kubernetes.Clientset) *mux.Router {
 }
 
 func createDeploymentHandler(w http.ResponseWriter, r *http.Request) {
-	var container containers.Container
+	w.Header().Set("Access-Control-Allow-Origin", "*") // Allow all origins
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	w.Header().Set("Content-Type", "application/json")
 
+	var container containers.Container
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&container)
 	if err != nil {
@@ -34,12 +38,11 @@ func createDeploymentHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Assuming the container service is already initialized, create the deployment
-	createdDeployment, err := containerService.CreateContainer(container.UserName, container.ContainerTag)
+	createdDeployment, err := containerService.CreateContainer(container.UserName, container.ContainerTag, container.MappedPort)
 	if err != nil {
 		http.Error(w, "Failed to create container", http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(createdDeployment)
 }
