@@ -1,0 +1,91 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "User Container Management",
+    "description": "Set of routes that describe how the users can manage their containers",
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    },
+    "version": "0.0.1"
+  },
+  "externalDocs": {
+    "description": "Github link",
+    "url": "https://github.com/Shade-Platform/demo-server"
+  },
+  "servers": [
+    {
+      "url": "<server_link>"
+    }
+  ],
+  "tags": [
+    {
+      "name": "container",
+      "description": "Everything about container management"
+    }
+  ],
+  "paths": {
+    "/container": {
+      "post": {
+        "summary": "Create a new container from online registry",
+        "description": "Creates a new container inside the user's namespace from the given registry link.",
+        "requestBody": {
+          "description": "The user's name and container link",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string"
+                  },
+                  "containerTag": {
+                    "type": "string"
+                  }
+                }
+              },
+              "examples": {
+                "foo": {
+                  "value": {
+                    "username": "danny",
+                    "containerTag": "hello-world:linux"
+                  }
+                },
+                "bar": {
+                  "value": {
+                    "username": "yehya",
+                    "containerTag": "hello-world:linux"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The created container's name and id",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "foo": {
+                    "value": {
+                      "status": "Container created under namespace danny [hello-world:linux]"
+                    }
+                  },
+                  "bar": {
+                    "value": {
+                      "status": "Container created under namespace yehya [hello-world:linux]"
+                    }
+                  }
+                },
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
