@@ -2,6 +2,7 @@ package users
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	_ "github.com/go-sql-driver/mysql" // Import the MySQL driver
@@ -13,7 +14,28 @@ type UserRepository interface {
 	Save(user *User) (*User, error)       // Save a user to the database
 	FindByID(id uuid.UUID) (*User, error) // Retrieve a user by UUID
 	FindAll() ([]*User, error)
+	FindByEmail(email string) (*User, error)
 	// Additional methods for data access (e.g., Update, Delete, etc.)
+}
+
+// FindByEmail retrieves a user by their email address
+func (repo *MySQLUserRepository) FindByEmail(email string) (*User, error) {
+	// Define the query
+	query := `SELECT id, name, email, password FROM users WHERE email = ?`
+
+	// Create a User struct to hold the result
+	var user User
+
+	// Execute the query and scan the result into the user struct
+	err := repo.DB.QueryRow(query, email).Scan(&user.ID, &user.Name, &user.Email, &user.Password)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil // Return nil if no user is found
+		}
+		return nil, fmt.Errorf("failed to find user by email: %v", err)
+	}
+
+	return &user, nil
 }
 
 // MySQLUserRepository is the implementation of UserRepository using MySQL.

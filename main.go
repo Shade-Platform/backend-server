@@ -17,26 +17,27 @@ func main() {
 	}
 
 	// Initialize the database connection
-	// dbConn, err := infrastructure.NewDBConnection()
-	// if err != nil {
-	// 	log.Fatalf("Failed to connect to the database: %v", err)
-	// }
-	// defer dbConn.Close()
+	dbConn, err := infrastructure.NewDBConnection()
+	if err != nil {
+		log.Fatalf("Failed to connect to the database: %v", err)
+	}
+	defer dbConn.Close()
 
 	// Check for command-line arguments
-	// infrastructure.MigrationsCliArguments(dbConn)
+	infrastructure.MigrationsCliArguments(dbConn)
 
 	// Initialize the router
 	// r := routers.InitializeUsersRouter(dbConn)
+	r := routers.InitializeAuthRouter(dbConn)
 
 	// Initialize the cluster connection
-	clientset, err := infrastructure.NewClusterConnection()
-	if err != nil {
-		log.Fatalf("Failed to connet to the cluster: %v", err)
-	}
+	// clientset, err := infrastructure.NewClusterConnection()
+	// if err != nil {
+	// 	log.Fatalf("Failed to connet to the cluster: %v", err)
+	// }
 
 	// Initialize the router
-	r := routers.InitializeContainersRouter(clientset)
+	// routers.InitializeContainersRouter(clientset)
 
 	// Start the server
 

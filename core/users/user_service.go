@@ -1,6 +1,8 @@
 package users
 
 import (
+	"errors"
+
 	"github.com/google/uuid"
 )
 
@@ -19,12 +21,13 @@ func (s *UserService) GetAllUsers() ([]*User, error) {
 }
 
 // CreateUser handles the creation of a new user.
-func (s *UserService) CreateUser(name, email string) (*User, error) {
+func (s *UserService) CreateUser(name, email, password string) (*User, error) {
 	// Create a new user instance
 	user := &User{
-		ID:    uuid.New(), // Generate a new UUID for the user
-		Name:  name,
-		Email: email,
+		ID:       uuid.New(), // Generate a new UUID for the user
+		Name:     name,
+		Email:    email,
+		Password: password,
 	}
 
 	// Save the user using the repository
@@ -39,4 +42,13 @@ func (s *UserService) CreateUser(name, email string) (*User, error) {
 // GetUserByID handles fetching a user by ID.
 func (s *UserService) GetUserByID(id uuid.UUID) (*User, error) {
 	return s.UserRepo.FindByID(id)
+}
+
+// GetUserByEmail fetches a user by email.
+func (s *UserService) GetUserByEmail(email string) (*User, error) {
+	user, err := s.UserRepo.FindByEmail(email)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+	return user, nil
 }

@@ -60,7 +60,7 @@ func createUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Assuming userService is already initialized, create the user
-	createdUser, err := userService.CreateUser(user.Name, user.Email)
+	createdUser, err := userService.CreateUser(user.Name, user.Email, user.Password)
 	if err != nil {
 		http.Error(w, "Failed to create user", http.StatusInternalServerError)
 		return
