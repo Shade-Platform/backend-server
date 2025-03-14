@@ -51,7 +51,7 @@ func signupHandler(w http.ResponseWriter, r *http.Request, userService *users.Us
 	// Store user in the database
 	_, err = userService.CreateUser(requestBody.Name, requestBody.Email, requestBody.Password)
 	if err != nil {
-		fmt.Println("%v", err)
+		fmt.Printf("%v\n", err) // Use fmt.Printf for formatted output
 		http.Error(w, "Failed to create user", http.StatusInternalServerError)
 		return
 	}

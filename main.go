@@ -23,29 +23,32 @@ func main() {
 	}
 	defer dbConn.Close()
 
-	// Check for command-line arguments
+	// Check for command-line arguments (e.g., migrations)
 	infrastructure.MigrationsCliArguments(dbConn)
 
-	// Initialize the router
-	// r := routers.InitializeUsersRouter(dbConn)
-	r := routers.InitializeAuthRouter(dbConn)
+	// Initialize the routers
+	userRouter := routers.InitializeUsersRouter(dbConn)
+	authRouter := routers.InitializeAuthRouter(dbConn)
 
-	// Initialize the cluster connection
-	// clientset, err := infrastructure.NewClusterConnection()
-	// if err != nil {
-	// 	log.Fatalf("Failed to connet to the cluster: %v", err)
-	// }
+	// Combine all routers into a single router
+	mainRouter := http.NewServeMux()
+	mainRouter.Handle("/users/", userRouter)
+	mainRouter.Handle("/auth/", authRouter)
 
-	// Initialize the router
-	// routers.InitializeContainersRouter(clientset)
+	// Configure CORS
+	corsOptions := handlers.CORS(
+		handlers.AllowedOrigins([]string{"*"}), // Allow all origins (change to specific domains in production)
+		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
+		handlers.AllowedHeaders([]string{"Content-Type", "Authorization"}),
+		handlers.AllowCredentials(),
+	)
+
+	// Wrap the main router with CORS middleware
+	handler := corsOptions(mainRouter)
 
 	// Start the server
-
-	corsOptions := handlers.CORS(
-		handlers.AllowedOrigins([]string{"*"}), // Change "*" to specific origins if needed
-		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
-		handlers.AllowedHeaders([]string{"Content-Type", "application/json"}),
-	)(r)
 	log.Println("Server running on :8080")
-	log.Fatal(http.ListenAndServe(":8080", corsOptions))
+	if err := http.ListenAndServe(":8080", handler); err != nil {
+		log.Fatalf("Failed to start the server: %v", err)
+	}
 }

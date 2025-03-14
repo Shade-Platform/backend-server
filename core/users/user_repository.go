@@ -11,23 +11,106 @@ import (
 
 // UserRepository defines methods for interacting with the data store.
 type UserRepository interface {
-	Save(user *User) (*User, error)       // Save a user to the database
-	FindByID(id uuid.UUID) (*User, error) // Retrieve a user by UUID
-	FindAll() ([]*User, error)
-	FindByEmail(email string) (*User, error)
-	// Additional methods for data access (e.g., Update, Delete, etc.)
+	Save(user *User) (*User, error)             // Save a user to the database
+	SaveSubUser(user *User) (*User, error)      // Save a sub-user to the database
+	FindByID(id uuid.UUID) (*User, error)       // Retrieve a user by UUID
+	FindByEmail(email string) (*User, error)    // Retrieve a user by email
+	FindAll() ([]*User, error)                  // Retrieve all users
 }
 
-// FindByEmail retrieves a user by their email address
-func (repo *MySQLUserRepository) FindByEmail(email string) (*User, error) {
-	// Define the query
-	query := `SELECT id, name, email, password FROM users WHERE email = ?`
+// MySQLUserRepository is the implementation of UserRepository using MySQL.
+type MySQLUserRepository struct {
+	DB *sql.DB
+}
 
-	// Create a User struct to hold the result
+// NewMySQLUserRepository creates a new MySQLUserRepository.
+func NewMySQLUserRepository(db *sql.DB) *MySQLUserRepository {
+	return &MySQLUserRepository{DB: db}
+}
+
+// Save stores a user in the database.
+func (repo *MySQLUserRepository) Save(user *User) (*User, error) {
+	// Generate a new UUID if the user doesn't have an ID
+	if user.ID == uuid.Nil {
+		user.ID = uuid.New()
+	}
+
+	// Prepare the query to insert or update the user
+	query := `
+		INSERT INTO users (id, name, email, password, root_user_id) 
+		VALUES (?, ?, ?, ?, ?) 
+		ON DUPLICATE KEY UPDATE name=?, email=?, password=?, root_user_id=?
+	`
+
+	// Execute the query
+	_, err := repo.DB.Exec(
+		query,
+		user.ID, user.Name, user.Email, user.Password, user.RootUserID,
+		user.Name, user.Email, user.Password, user.RootUserID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to save user: %v", err)
+	}
+
+	return user, nil
+}
+
+// SaveSubUser stores a sub-user in the database.
+func (repo *MySQLUserRepository) SaveSubUser(user *User) (*User, error) {
+	// Generate a new UUID if the sub-user doesn't have an ID
+	if user.ID == uuid.Nil {
+		user.ID = uuid.New()
+	}
+
+	// Prepare the query to insert the sub-user
+	query := `
+		INSERT INTO users (id, name, email, password, root_user_id) 
+		VALUES (?, ?, ?, ?, ?)
+	`
+
+	// Execute the query
+	_, err := repo.DB.Exec(query, user.ID, user.Name, user.Email, user.Password, user.RootUserID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to save sub-user: %v", err)
+	}
+
+	return user, nil
+}
+
+// FindByID retrieves a user by ID from the database.
+func (repo *MySQLUserRepository) FindByID(id uuid.UUID) (*User, error) {
+	// Prepare the query to fetch the user by ID
+	query := `
+		SELECT id, name, email, password, root_user_id 
+		FROM users 
+		WHERE id = ?
+	`
+
+	// Execute the query and scan the result into a User struct
 	var user User
+	err := repo.DB.QueryRow(query, id).Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.RootUserID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("user not found")
+		}
+		return nil, fmt.Errorf("failed to retrieve user: %v", err)
+	}
 
-	// Execute the query and scan the result into the user struct
-	err := repo.DB.QueryRow(query, email).Scan(&user.ID, &user.Name, &user.Email, &user.Password)
+	return &user, nil
+}
+
+// FindByEmail retrieves a user by their email address.
+func (repo *MySQLUserRepository) FindByEmail(email string) (*User, error) {
+	// Prepare the query to fetch the user by email
+	query := `
+		SELECT id, name, email, password, root_user_id 
+		FROM users 
+		WHERE email = ?
+	`
+
+	// Execute the query and scan the result into a User struct
+	var user User
+	err := repo.DB.QueryRow(query, email).Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.RootUserID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil // Return nil if no user is found
@@ -38,40 +121,13 @@ func (repo *MySQLUserRepository) FindByEmail(email string) (*User, error) {
 	return &user, nil
 }
 
-// MySQLUserRepository is the implementation of UserRepository using MySQL.
-type MySQLUserRepository struct {
-	DB *sql.DB
-}
-
-// NewMySQLUserRepository creates a new MySQLUserRepository
-func NewMySQLUserRepository(db *sql.DB) *MySQLUserRepository {
-	return &MySQLUserRepository{DB: db}
-}
-
-// Save stores a user in the database
-func (repo *MySQLUserRepository) Save(user *User) (*User, error) {
-	// If the user doesn't have an ID, generate a new UUID
-	if user.ID == uuid.Nil {
-		user.ID = uuid.New()
-	}
-
-	// Prepare the query to insert the user into the database
-	query := `INSERT INTO users (id, name, email, password) 
-			  VALUES (?, ?, ?, ?) 
-			  ON DUPLICATE KEY UPDATE name=?, email=?, password=?`
-
-	// Execute the query
-	_, err := repo.DB.Exec(query, user.ID, user.Name, user.Email, user.Password, user.Name, user.Email, user.Password)
-	if err != nil {
-		return nil, fmt.Errorf("failed to save user: %v", err)
-	}
-
-	return user, nil
-}
-
+// FindAll retrieves all users from the database.
 func (repo *MySQLUserRepository) FindAll() ([]*User, error) {
-	// Define the query to fetch all users
-	query := `SELECT id, name, email FROM users`
+	// Prepare the query to fetch all users
+	query := `
+		SELECT id, name, email, root_user_id 
+		FROM users
+	`
 
 	// Execute the query
 	rows, err := repo.DB.Query(query)
@@ -80,12 +136,11 @@ func (repo *MySQLUserRepository) FindAll() ([]*User, error) {
 	}
 	defer rows.Close()
 
-	var users []*User
-
 	// Loop through the rows and scan the data into User structs
+	var users []*User
 	for rows.Next() {
 		var user User
-		err := rows.Scan(&user.ID, &user.Name, &user.Email)
+		err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.RootUserID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan user: %v", err)
 		}
@@ -98,22 +153,4 @@ func (repo *MySQLUserRepository) FindAll() ([]*User, error) {
 	}
 
 	return users, nil
-}
-
-// FindByID retrieves a user by ID from the database
-func (repo *MySQLUserRepository) FindByID(id uuid.UUID) (*User, error) {
-	// Query the database for the user by ID
-	query := `SELECT id, name, email, password, created_at FROM users WHERE id = ?`
-
-	row := repo.DB.QueryRow(query, id)
-
-	var user User
-	if err := row.Scan(&user.ID, &user.Name, &user.Email, &user.Password); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("user not found")
-		}
-		return nil, fmt.Errorf("failed to retrieve user: %v", err)
-	}
-
-	return &user, nil
 }
