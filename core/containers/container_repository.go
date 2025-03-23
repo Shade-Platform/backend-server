@@ -16,10 +16,10 @@ import (
 type ContainerRepository interface {
 	GetByName(namespace, name string) (*Container, error) // Get a container from namespace and name
 	Create(container *Container) (*Container, error)      // Create a new container
+	Delete(namespace, name string) error                  // Remove a container from the cluster
 	// Pause(container *Container) error                // Pause a container while maintaining state
 	// Stop(container *Container) error                 // Stop container and destroy state
 	// Restart(container *Container) error              // Stop then start a container
-	// Remove(container *Container) error               // Remove a container from the cluster
 	// GetByTagName(tag string) (*[]Container, error) // Get container(s) with a specific tag
 	// AddPods(container *Container) error            // Add Pod instances to a container
 	// RemovePods(container *Container) error         // Remove Pos instances from a container
@@ -176,4 +176,34 @@ func (cluster KubernetesContainerRepository) Create(container *Container) (*Cont
 	container.MappedPort = createdService.Spec.Ports[0].NodePort
 
 	return container, nil
+}
+
+// Deletes a deployment and service
+func (cluster KubernetesContainerRepository) Delete(namespace, name string) error {
+
+	// Check if the namespace already exists
+	namespacesClient := cluster.CS.CoreV1().Namespaces()
+
+	if _, err := namespacesClient.Get(context.Background(), namespace, metav1.GetOptions{}); err == nil {
+		fmt.Printf("Namespace %q in fact exists.\n", namespace)
+	} else {
+		return fmt.Errorf("namespace %q does not exist", namespace)
+	}
+
+	deploymentClient := cluster.CS.AppsV1().Deployments(namespace)
+
+	err := deploymentClient.Delete(context.Background(), name, metav1.DeleteOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to delete deployment: %v", err)
+	}
+
+	// TODO: Add option to check if container has ports
+	serviceClient := cluster.CS.CoreV1().Services(namespace)
+
+	err = serviceClient.Delete(context.Background(), name+"-service", metav1.DeleteOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to delete service: %v", err)
+	}
+
+	return nil
 }
