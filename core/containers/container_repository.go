@@ -14,8 +14,8 @@ import (
 // Deployment (unless AddPods, Remove Pods)
 // ContainerRepository defines methods for interacting with the cluster.
 type ContainerRepository interface {
-	// GetByID(id string) (*Container, error)           // Get a container with a unique identifier
-	Create(container *Container) (*Container, error) // Create a new container
+	GetByName(namespace, name string) (*Container, error) // Get a container from namespace and name
+	Create(container *Container) (*Container, error)      // Create a new container
 	// Pause(container *Container) error                // Pause a container while maintaining state
 	// Stop(container *Container) error                 // Stop container and destroy state
 	// Restart(container *Container) error              // Stop then start a container
@@ -35,9 +35,44 @@ func NewKubernetesContainerRepository(clientset *kubernetes.Clientset) Kubernete
 	return KubernetesContainerRepository{CS: clientset}
 }
 
-func (cluster KubernetesContainerRepository) GetByID(id, namespace string) (*Container, error) {
+func (cluster KubernetesContainerRepository) GetByName(namespace, name string) (*Container, error) {
 
-	return nil, nil
+	// Check if the namespace already exists
+	namespacesClient := cluster.CS.CoreV1().Namespaces()
+
+	_, err := namespacesClient.Get(context.Background(), namespace, metav1.GetOptions{})
+	if err == nil {
+		fmt.Printf("Namespace %q in fact exists.\n", namespace)
+	} else {
+		return nil, fmt.Errorf("namespace %q does not exist", namespace)
+	}
+
+	deploymentClient := cluster.CS.AppsV1().Deployments(namespace)
+
+	deployment, err := deploymentClient.Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get deployment: %v", err)
+	}
+
+	// TODO: Add option to check if container has ports
+	serviceClient := cluster.CS.CoreV1().Services(namespace)
+
+	service, err := serviceClient.Get(context.Background(), name+"-service", metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get service: %v", err)
+	}
+
+	container := &Container{
+		Owner:         namespace,
+		Name:          deployment.Name,
+		ImageTag:      deployment.Spec.Template.Spec.Containers[0].Image,
+		Replicas:      *deployment.Spec.Replicas,
+		MappedPort:    service.Spec.Ports[0].NodePort,
+		CreationDate:  deployment.GetCreationTimestamp().Time,
+		ContainerTags: map[string]string{},
+	}
+
+	return container, nil
 }
 
 // Creates a deployment with the container attributes

@@ -19,7 +19,7 @@ func InitializeContainersRouter(clientset *kubernetes.Clientset) *mux.Router {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/container/create", createDeploymentHandler).Methods("POST")
-	r.HandleFunc("/container/{id}/status", getDeploymentStatusHandler).Methods("GET")
+	r.HandleFunc("/container/{name}/status", getDeploymentStatusHandler).Methods("GET")
 
 	return r
 }
@@ -60,6 +60,31 @@ func getDeploymentStatusHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 	w.Header().Set("Content-Type", "application/json")
 
-	// Place holder for fetching deployment status
-	json.NewEncoder(w).Encode("Deployment status")
+	// Get the container name from the URL path
+	var name = mux.Vars(r)["name"]
+	var userToken = r.Header.Get("Authorization")
+
+	// Validate the user has access to the container (zero trust)
+	// Placeholder for user validation
+	if userToken != "valid_token" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Get user from token
+	// Placeholder for user extraction from token
+	// user, err := getUserFromToken(userToken)
+	// if err != nil {
+	// 	http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	// 	return
+	// }
+	var user = "danny"
+
+	container, err := containerService.GetContainerStatus(user, name)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(container)
 }

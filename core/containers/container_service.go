@@ -35,3 +35,12 @@ func (s *ContainerService) CreateContainer(
 
 	return createdContainer, nil
 }
+
+func (s *ContainerService) GetContainerStatus(user, name string) (*Container, error) {
+	container, err := s.ContainerRepo.GetByName(user, name)
+	if err != nil {
+		return nil, err
+	}
+
+	return container, nil
+}
