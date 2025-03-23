@@ -1,5 +1,7 @@
 package containers
 
+import "fmt"
+
 // ContainerService contains business logic related to containers.
 type ContainerService struct {
 	ContainerRepo ContainerRepository
@@ -18,6 +20,21 @@ func (s *ContainerService) CreateContainer(
 	replicas,
 	mappedPort int32,
 ) (*Container, error) {
+
+	// Ensure that container does not end in -service
+	if len(id) >= 8 && id[len(id)-8:] == "-service" {
+		return nil, fmt.Errorf("container name cannot end in -service")
+	}
+
+	// Ensure that id length greater than 3 characters and is less than 64 - 8 = 56 characters
+	// (so that service name can be less than 64 characters)
+	if len(id) < 3 {
+		return nil, fmt.Errorf("container name must be at least 3 characters")
+	}
+	if len(id) > 56 {
+		return nil, fmt.Errorf("container name cannot be longer than 56 characters")
+	}
+
 	// Create a new container instance
 	container := &Container{
 		Name:       id,
@@ -43,4 +60,20 @@ func (s *ContainerService) GetContainerStatus(user, name string) (*Container, er
 	}
 
 	return container, nil
+}
+
+func (s *ContainerService) DeleteContainer(user, name string) error {
+	return s.ContainerRepo.Delete(user, name)
+}
+
+// func (s *ContainerService) PauseContainer(user, name string) error {
+// 	return s.ContainerRepo.Pause(user, name)
+// }
+
+func (s *ContainerService) StopContainer(user, name string) error {
+	return s.ContainerRepo.Stop(user, name)
+}
+
+func (s *ContainerService) StartContainer(user, name string) error {
+	return s.ContainerRepo.Start(user, name)
 }
