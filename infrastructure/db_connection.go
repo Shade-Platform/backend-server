@@ -29,8 +29,8 @@ func NewDBConnection() (*sql.DB, error) {
 	var db *sql.DB
 	var err error
 
-	// Retry connection until successful
-	for {
+	// Retry connection until successful or tries exceed 10
+	for tries := 1; ; tries++ {
 		// Initialize the database connection
 		db, err = sql.Open("mysql", dsn)
 		if err != nil {
@@ -42,6 +42,11 @@ func NewDBConnection() (*sql.DB, error) {
 				log.Println("Connected to the database!")
 				break
 			}
+		}
+
+		if tries >= 10 {
+			log.Fatalf("Failed to connect to the database after %d tries", tries)
+			return nil, err
 		}
 
 		// Wait before retrying

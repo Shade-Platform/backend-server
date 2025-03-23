@@ -18,7 +18,8 @@ func InitializeContainersRouter(clientset *kubernetes.Clientset) *mux.Router {
 
 	r := mux.NewRouter()
 
-	r.HandleFunc("/container", createDeploymentHandler).Methods("POST")
+	r.HandleFunc("/container/create", createDeploymentHandler).Methods("POST")
+	r.HandleFunc("/container/{name}/status", getDeploymentStatusHandler).Methods("GET")
 
 	return r
 }
@@ -38,11 +39,52 @@ func createDeploymentHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Assuming the container service is already initialized, create the deployment
-	createdDeployment, err := containerService.CreateContainer(container.UserName, container.ContainerTag, container.MappedPort)
+	createdDeployment, err := containerService.CreateContainer(
+		container.Name,
+		container.Owner,
+		container.ImageTag,
+		container.Replicas,
+		container.MappedPort,
+	)
 	if err != nil {
-		http.Error(w, "Failed to create container", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	json.NewEncoder(w).Encode(createdDeployment)
+}
+
+func getDeploymentStatusHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*") // Allow all origins
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	w.Header().Set("Content-Type", "application/json")
+
+	// Get the container name from the URL path
+	var name = mux.Vars(r)["name"]
+	var userToken = r.Header.Get("Authorization")
+
+	// Validate the user has access to the container (zero trust)
+	// Placeholder for user validation
+	if userToken != "valid_token" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Get user from token
+	// Placeholder for user extraction from token
+	// user, err := getUserFromToken(userToken)
+	// if err != nil {
+	// 	http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	// 	return
+	// }
+	var user = "danny"
+
+	container, err := containerService.GetContainerStatus(user, name)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(container)
 }
