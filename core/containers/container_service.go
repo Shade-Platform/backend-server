@@ -11,11 +11,19 @@ func NewContainerService(repo ContainerRepository) *ContainerService {
 }
 
 // CreateContainer handles the creation of a new user.
-func (s *ContainerService) CreateContainer(username, containerTag  string, mappedPort int32) (*Container, error) {
+func (s *ContainerService) CreateContainer(
+	id,
+	username,
+	containerTag string,
+	replicas,
+	mappedPort int32,
+) (*Container, error) {
 	// Create a new container instance
 	container := &Container{
-		UserName:     username,
-		ContainerTag: containerTag,
+		Name:       id,
+		Owner:      username,
+		ImageTag:   containerTag,
+		Replicas:   replicas,
 		MappedPort: mappedPort,
 	}
 
