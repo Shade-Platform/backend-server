@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"shade_web_server/core/containers"
+	"time"
 
 	"github.com/gorilla/mux"
 	"k8s.io/client-go/kubernetes"
@@ -21,6 +22,12 @@ func InitializeContainersRouter(clientset *kubernetes.Clientset) *mux.Router {
 	r.HandleFunc("/container/create", createDeploymentHandler).Methods("POST")
 	r.HandleFunc("/container/{name}", getDeploymentStatusHandler).Methods("GET")
 	r.HandleFunc("/container/{name}", deleteDeploymentHandler).Methods("DELETE")
+	r.HandleFunc("/container/{name}/stop", stopDeploymentHandler).Methods("PATCH")
+	r.HandleFunc("/container/{name}/start", startDeploymentHandler).Methods("PATCH")
+	r.HandleFunc("/container/{name}/restart", restartDeploymentHandler).Methods("PATCH")
+
+	// Error encountered when trying to pause a deployment: No supported methods in K8 API
+	// r.HandleFunc("/container/{name}/pause", pauseDeploymentHandler).Methods("PATCH")
 
 	return r
 }
@@ -126,4 +133,151 @@ func deleteDeploymentHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(map[string]string{"message": "Container deleted"})
+}
+
+// func pauseDeploymentHandler(w http.ResponseWriter, r *http.Request) {
+// 	w.Header().Set("Access-Control-Allow-Origin", "*") // Allow all origins
+// 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+// 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+// 	w.Header().Set("Content-Type", "application/json")
+
+// 	// Get the container name from the URL path
+// 	var name = mux.Vars(r)["name"]
+// 	var userToken = r.Header.Get("Authorization")
+
+// 	// TODO: Validate the user has access to the container (zero trust)
+// 	// Placeholder for user validation
+// 	if userToken != "valid_token" {
+// 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+// 		return
+// 	}
+
+// 	// TODO: Get user from token
+// 	// Placeholder for user extraction from token
+// 	// user, err := getUserFromToken(userToken)
+// 	// if err != nil {
+// 	// 	http.Error(w, "Unauthorized", http.StatusUnauthorized)
+// 	// 	return
+// 	// }
+// 	var user = "danny"
+
+// 	err := containerService.PauseContainer(user, name)
+// 	if err != nil {
+// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+// 		return
+// 	}
+
+// 	w.WriteHeader(http.StatusAccepted)
+
+// 	json.NewEncoder(w).Encode(map[string]string{"message": "Container paused"})
+// }
+
+func stopDeploymentHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*") // Allow all origins
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	w.Header().Set("Content-Type", "application/json")
+
+	// Get the container name from the URL path
+	var name = mux.Vars(r)["name"]
+	var userToken = r.Header.Get("Authorization")
+
+	// TODO: Validate the user has access to the container (zero trust)
+	// Placeholder for user validation
+	if userToken != "valid_token" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// TODO: Get user from token
+	// Placeholder for user extraction from token
+	// user, err := getUserFromToken(userToken)
+	// if err != nil {
+	// 	http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	// 	return
+	// }
+	var user = "danny"
+
+	err := containerService.StopContainer(user, name)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func startDeploymentHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*") // Allow all origins
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	w.Header().Set("Content-Type", "application/json")
+
+	// Get the container name from the URL path
+	var name = mux.Vars(r)["name"]
+	var userToken = r.Header.Get("Authorization")
+
+	// TODO: Validate the user has access to the container (zero trust)
+	// Placeholder for user validation
+	if userToken != "valid_token" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// TODO: Get user from token
+	// Placeholder for user extraction from token
+	// user, err := getUserFromToken(userToken)
+	// if err != nil {
+	// 	http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	// 	return
+	// }
+	var user = "danny"
+
+	err := containerService.StartContainer(user, name)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+}
+
+// Restart the deployment by stopping and starting it
+func restartDeploymentHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*") // Allow all origins
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	w.Header().Set("Content-Type", "application/json")
+
+	// Get the container name from the URL path
+	var name = mux.Vars(r)["name"]
+	var userToken = r.Header.Get("Authorization")
+
+	// TODO: Validate the user has access to the container (zero trust)
+	// Placeholder for user validation
+	if userToken != "valid_token" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// TODO: Get user from token
+	// Placeholder for user extraction from token
+	// user, err := getUserFromToken(userToken)
+	// if err != nil {
+	// 	http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	// 	return
+	// }
+	var user = "danny"
+
+	err := containerService.StopContainer(user, name)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Wait for 5 seconds before starting the container for nice restart effect
+	time.Sleep(5 * time.Second)
+
+	err = containerService.StartContainer(user, name)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }

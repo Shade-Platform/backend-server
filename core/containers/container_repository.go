@@ -3,12 +3,14 @@ package containers
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/utils/ptr"
 )
 
 // Deployment (unless AddPods, Remove Pods)
@@ -17,8 +19,12 @@ type ContainerRepository interface {
 	GetByName(namespace, name string) (*Container, error) // Get a container from namespace and name
 	Create(container *Container) (*Container, error)      // Create a new container
 	Delete(namespace, name string) error                  // Remove a container from the cluster
-	// Pause(container *Container) error                // Pause a container while maintaining state
-	// Stop(container *Container) error                 // Stop container and destroy state
+	Stop(namespace, name string) error                    // Stop container and destroy state
+	Start(namespace, name string) error                   // Start a stopped container
+
+	// Error encountered when trying to pause a deployment: No supported methods in K8 API
+	// Pause(namespace, name string) error                   // Pause a container while maintaining state
+
 	// Restart(container *Container) error              // Stop then start a container
 	// GetByTagName(tag string) (*[]Container, error) // Get container(s) with a specific tag
 	// AddPods(container *Container) error            // Add Pod instances to a container
@@ -203,6 +209,113 @@ func (cluster KubernetesContainerRepository) Delete(namespace, name string) erro
 	err = serviceClient.Delete(context.Background(), name+"-service", metav1.DeleteOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to delete service: %v", err)
+	}
+
+	return nil
+}
+
+// Pauses a deployment
+// Error encountered when trying to pause a deployment: No supported methods in K8 API
+// func (cluster KubernetesContainerRepository) Pause(namespace, name string) error {
+
+// 	// Check if the namespace already exists
+// 	namespacesClient := cluster.CS.CoreV1().Namespaces()
+
+// 	if _, err := namespacesClient.Get(context.Background(), namespace, metav1.GetOptions{}); err == nil {
+// 		fmt.Printf("Namespace %q in fact exists.\n", namespace)
+// 	} else {
+// 		return fmt.Errorf("namespace %q does not exist", namespace)
+// 	}
+
+// 	deploymentClient := cluster.CS.AppsV1().Deployments(namespace)
+
+// 	deployment, err := deploymentClient.Get(context.Background(), name, metav1.GetOptions{})
+// 	if err != nil {
+// 		return fmt.Errorf("failed to get deployment: %v", err)
+// 	}
+
+// 	deployment.Spec.Paused = true
+
+// 	_, err = deploymentClient.Update(context.Background(), deployment, metav1.UpdateOptions{})
+// 	if err != nil {
+// 		return fmt.Errorf("failed to update deployment: %v", err)
+// 	}
+
+// 	return nil
+// }
+
+// Stops a deployment
+func (cluster KubernetesContainerRepository) Stop(namespace, name string) error {
+
+	// Check if the namespace already exists
+	namespacesClient := cluster.CS.CoreV1().Namespaces()
+
+	if _, err := namespacesClient.Get(context.Background(), namespace, metav1.GetOptions{}); err == nil {
+		fmt.Printf("Namespace %q in fact exists.\n", namespace)
+	} else {
+		return fmt.Errorf("namespace %q does not exist", namespace)
+	}
+
+	deploymentClient := cluster.CS.AppsV1().Deployments(namespace)
+
+	deployment, err := deploymentClient.Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get deployment: %v", err)
+	}
+
+	// Get the current number of replicas
+	replicas := int(*deployment.Spec.Replicas)
+
+	// Store the original number of replicas in an annotation
+	deployment.Annotations = map[string]string{
+		"original-replicas": strconv.Itoa(replicas),
+	}
+
+	deployment.Spec.Replicas = ptr.To(int32(0))
+
+	_, err = deploymentClient.Update(context.Background(), deployment, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to update deployment: %v", err)
+	}
+
+	return nil
+}
+
+// Starts a stopped deployment
+func (cluster KubernetesContainerRepository) Start(namespace, name string) error {
+
+	// Check if the namespace already exists
+	namespacesClient := cluster.CS.CoreV1().Namespaces()
+
+	if _, err := namespacesClient.Get(context.Background(), namespace, metav1.GetOptions{}); err == nil {
+		fmt.Printf("Namespace %q in fact exists.\n", namespace)
+	} else {
+		return fmt.Errorf("namespace %q does not exist", namespace)
+	}
+
+	deploymentClient := cluster.CS.AppsV1().Deployments(namespace)
+
+	deployment, err := deploymentClient.Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get deployment: %v", err)
+	}
+
+	// Get the original number of replicas from the annotation
+	originalReplicas, ok := deployment.Annotations["original-replicas"]
+	if !ok {
+		return fmt.Errorf("original replicas not found in annotations")
+	}
+
+	replicas, err := strconv.Atoi(originalReplicas)
+	if err != nil {
+		return fmt.Errorf("failed to convert replicas to int: %v", err)
+	}
+
+	deployment.Spec.Replicas = ptr.To(int32(replicas))
+
+	_, err = deploymentClient.Update(context.Background(), deployment, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to update deployment: %v", err)
 	}
 
 	return nil

@@ -65,3 +65,15 @@ func (s *ContainerService) GetContainerStatus(user, name string) (*Container, er
 func (s *ContainerService) DeleteContainer(user, name string) error {
 	return s.ContainerRepo.Delete(user, name)
 }
+
+// func (s *ContainerService) PauseContainer(user, name string) error {
+// 	return s.ContainerRepo.Pause(user, name)
+// }
+
+func (s *ContainerService) StopContainer(user, name string) error {
+	return s.ContainerRepo.Stop(user, name)
+}
+
+func (s *ContainerService) StartContainer(user, name string) error {
+	return s.ContainerRepo.Start(user, name)
+}
