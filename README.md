@@ -64,3 +64,7 @@ If it is the initial run you should also run the following migrations command to
 `docker exec -it app go run main.go migrate up`
 
 Then you can visit the server using that url: "http://localhost:8080"
+
+- instead of running migrations, just dump data manually using this command
+
+`docker exec -i mysql_db mysqldump -u root -ppassword mydb | tee ./mydb_dump.sql`
