@@ -23,11 +23,11 @@ func InitializeAuthRouter(dbConn *sql.DB) *mux.Router {
 	r := mux.NewRouter()
 
 	// Pass `authService` to handlers
-	r.HandleFunc("/auth/signup", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/auth/signup/", func(w http.ResponseWriter, r *http.Request) {
 		signupHandler(w, r, userService)
 	}).Methods("POST")
 
-	r.HandleFunc("/auth/login", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/auth/login/", func(w http.ResponseWriter, r *http.Request) {
 		loginHandler(w, r, authService)
 	}).Methods("POST")
 
@@ -76,7 +76,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request, authService *auth.Auth
 	}
 
 	// Authenticate user using the AuthService instance
-	token, err := authService.AuthenticateUser(requestBody.Email)
+	token, err := authService.AuthenticateUser(requestBody.Email, requestBody.Password)
 	if err != nil {
 		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
@@ -84,5 +84,15 @@ func loginHandler(w http.ResponseWriter, r *http.Request, authService *auth.Auth
 
 	// Return JWT token as JSON response
 	response := map[string]string{"token": token}
-	json.NewEncoder(w).Encode(response)
+
+	// Marshal the response to JSON
+	jsonResponse, err := json.Marshal(response)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	// Set the response header and write the response body
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(jsonResponse)
 }

@@ -3,6 +3,7 @@ package users
 import (
 	"errors"
 	"fmt" // import the fmt package
+
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -57,11 +58,11 @@ func (s *UserService) CreateSubUser(rootUserID uuid.UUID, name, email, password 
 
 	// Create a new sub-user instance
 	subUser := &User{
-		ID:          uuid.New(), // Generate a new UUID for the sub-user
-		Name:        name,
-		Email:       email,
-		Password:    string(hashedPassword),
-		RootUserID:  rootUserID, // Link to the root user
+		ID:       uuid.New(), // Generate a new UUID for the sub-user
+		Name:     name,
+		Email:    email,
+		Password: string(hashedPassword),
+		// RootUserID:  rootUserID, // Link to the root user
 	}
 
 	// Save the sub-user using the repository

@@ -17,31 +17,31 @@ func main() {
 	}
 
 	// Initialize the database connection
-	// dbConn, err := infrastructure.NewDBConnection()
-	// if err != nil {
-	// 	log.Fatalf("Failed to connect to the database: %v", err)
-	// }
-	// defer dbConn.Close()
+	dbConn, err := infrastructure.NewDBConnection()
+	if err != nil {
+		log.Fatalf("Failed to connect to the database: %v", err)
+	}
+	defer dbConn.Close()
 
 	// Initialize the cluster connection
-	clientset, err := infrastructure.NewClusterConnection()
-	if err != nil {
-		log.Fatalf("Failed to connect to the cluster: %v", err)
-	}
+	// clientset, err := infrastructure.NewClusterConnection()
+	// if err != nil {
+	// 	log.Fatalf("Failed to connect to the cluster: %v", err)
+	// }
 
 	// Check for command-line arguments (e.g., migrations)
-	// infrastructure.MigrationsCliArguments(dbConn)
+	infrastructure.MigrationsCliArguments(dbConn)
 
 	// Initialize the routers
-	// userRouter := routers.InitializeUsersRouter(dbConn)
-	// authRouter := routers.InitializeAuthRouter(dbConn)
-	containerRouter := routers.InitializeContainersRouter(clientset)
+	userRouter := routers.InitializeUsersRouter(dbConn)
+	authRouter := routers.InitializeAuthRouter(dbConn)
+	// containerRouter := routers.InitializeContainersRouter(clientset)
 
 	// Combine all routers into a single router
 	mainRouter := http.NewServeMux()
-	// mainRouter.Handle("/users/", userRouter)
-	// mainRouter.Handle("/auth/", authRouter)
-	mainRouter.Handle("/container/", containerRouter)
+	mainRouter.Handle("/users/", userRouter)
+	mainRouter.Handle("/auth/", authRouter)
+	// mainRouter.Handle("/container/", containerRouter)
 
 	// Configure CORS
 	corsOptions := handlers.CORS(

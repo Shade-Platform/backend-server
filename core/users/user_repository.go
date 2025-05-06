@@ -11,11 +11,11 @@ import (
 
 // UserRepository defines methods for interacting with the data store.
 type UserRepository interface {
-	Save(user *User) (*User, error)             // Save a user to the database
-	SaveSubUser(user *User) (*User, error)      // Save a sub-user to the database
-	FindByID(id uuid.UUID) (*User, error)       // Retrieve a user by UUID
-	FindByEmail(email string) (*User, error)    // Retrieve a user by email
-	FindAll() ([]*User, error)                  // Retrieve all users
+	Save(user *User) (*User, error)          // Save a user to the database
+	SaveSubUser(user *User) (*User, error)   // Save a sub-user to the database
+	FindByID(id uuid.UUID) (*User, error)    // Retrieve a user by UUID
+	FindByEmail(email string) (*User, error) // Retrieve a user by email
+	FindAll() ([]*User, error)               // Retrieve all users
 }
 
 // MySQLUserRepository is the implementation of UserRepository using MySQL.
@@ -37,16 +37,21 @@ func (repo *MySQLUserRepository) Save(user *User) (*User, error) {
 
 	// Prepare the query to insert or update the user
 	query := `
-		INSERT INTO users (id, name, email, password, root_user_id) 
-		VALUES (?, ?, ?, ?, ?) 
-		ON DUPLICATE KEY UPDATE name=?, email=?, password=?, root_user_id=?
-	`
+	INSERT INTO users (id, name, email, password)
+	VALUES (?, ?, ?, ?)
+	ON DUPLICATE KEY UPDATE 
+		name = VALUES(name), 
+		email = VALUES(email), 
+		password = VALUES(password)
+`
 
 	// Execute the query
 	_, err := repo.DB.Exec(
 		query,
-		user.ID, user.Name, user.Email, user.Password, user.RootUserID,
-		user.Name, user.Email, user.Password, user.RootUserID,
+		// user.ID, user.Name, user.Email, user.Password, user.RootUserID,
+		user.ID, user.Name, user.Email, user.Password,
+		// user.Name, user.Email, user.Password, user.RootUserID,
+		// user.Name, user.Email, user.Password,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save user: %v", err)
@@ -69,7 +74,8 @@ func (repo *MySQLUserRepository) SaveSubUser(user *User) (*User, error) {
 	`
 
 	// Execute the query
-	_, err := repo.DB.Exec(query, user.ID, user.Name, user.Email, user.Password, user.RootUserID)
+	// _, err := repo.DB.Exec(query, user.ID, user.Name, user.Email, user.Password, user.RootUserID)
+	_, err := repo.DB.Exec(query, user.ID, user.Name, user.Email, user.Password)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save sub-user: %v", err)
 	}
@@ -88,7 +94,8 @@ func (repo *MySQLUserRepository) FindByID(id uuid.UUID) (*User, error) {
 
 	// Execute the query and scan the result into a User struct
 	var user User
-	err := repo.DB.QueryRow(query, id).Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.RootUserID)
+	// err := repo.DB.QueryRow(query, id).Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.RootUserID)
+	err := repo.DB.QueryRow(query, id).Scan(&user.ID, &user.Name, &user.Email, &user.Password)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("user not found")
@@ -103,14 +110,15 @@ func (repo *MySQLUserRepository) FindByID(id uuid.UUID) (*User, error) {
 func (repo *MySQLUserRepository) FindByEmail(email string) (*User, error) {
 	// Prepare the query to fetch the user by email
 	query := `
-		SELECT id, name, email, password, root_user_id 
+		SELECT id, name, email, password
 		FROM users 
 		WHERE email = ?
 	`
 
 	// Execute the query and scan the result into a User struct
 	var user User
-	err := repo.DB.QueryRow(query, email).Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.RootUserID)
+	// err := repo.DB.QueryRow(query, email).Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.RootUserID)
+	err := repo.DB.QueryRow(query, email).Scan(&user.ID, &user.Name, &user.Email, &user.Password)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil // Return nil if no user is found
@@ -125,7 +133,7 @@ func (repo *MySQLUserRepository) FindByEmail(email string) (*User, error) {
 func (repo *MySQLUserRepository) FindAll() ([]*User, error) {
 	// Prepare the query to fetch all users
 	query := `
-		SELECT id, name, email, root_user_id 
+		SELECT id, name, email
 		FROM users
 	`
 
@@ -140,7 +148,8 @@ func (repo *MySQLUserRepository) FindAll() ([]*User, error) {
 	var users []*User
 	for rows.Next() {
 		var user User
-		err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.RootUserID)
+		err := rows.Scan(&user.ID, &user.Name, &user.Email)
+		// err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.RootUserID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan user: %v", err)
 		}

@@ -4,6 +4,8 @@ import (
 	"errors"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"shade_web_server/core/users"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -35,14 +37,20 @@ func (s *AuthService) GenerateJWT(user *users.User) (string, error) {
 }
 
 // AuthenticateUser checks user credentials and returns a JWT token.
-func (s *AuthService) AuthenticateUser(email string) (string, error) {
-	// Check if user exists
+func (s *AuthService) AuthenticateUser(email string, password string) (string, error) {
+	// Look up the user by email
 	user, err := s.UserService.GetUserByEmail(email)
 	if err != nil {
 		return "", errors.New("invalid email or password")
 	}
 
-	// Generate JWT for the authenticated user
+	// Compare the stored hash with the password provided
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil {
+		return "", errors.New("invalid email or password")
+	}
+
+	// erate JWT if password matches
 	token, err := s.GenerateJWT(user)
 	if err != nil {
 		return "", err

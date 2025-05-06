@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"shade_web_server/core/users"
 
-	"github.com/gorilla/mux"
 	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 )
 
 // Initialize the userService variable
@@ -18,17 +18,17 @@ var userService *users.UserService
 func InitializeUsersRouter(dbConn *sql.DB) *mux.Router {
 	// Initialize the UserRepository and UserService
 	repo := users.NewMySQLUserRepository(dbConn) // Pass dbConn here
-	userService = users.NewUserService(repo)    
+	userService = users.NewUserService(repo)
 
 	r := mux.NewRouter()
 
 	// Define routes and pass userService to the handlers
-	r.HandleFunc("/", aboutHandler).Methods("GET")
-	r.HandleFunc("/users", getUsers).Methods("GET")
-	r.HandleFunc("/users/create", createUserHandler).Methods("POST")
-	r.HandleFunc("/users/sub-users/create", createSubUserHandler).Methods("POST") 
-	r.HandleFunc("/users/{id}", getUserByID).Methods("GET")                      
-	r.HandleFunc("/users/email/{email}", getUserByEmail).Methods("GET")           
+	// r.HandleFunc("/", aboutHandler).Methods("GET")
+	r.HandleFunc("/users/", getUsers).Methods("GET")
+	r.HandleFunc("/users/create/", createUserHandler).Methods("POST")
+	r.HandleFunc("/users/sub-users/create/", createSubUserHandler).Methods("POST")
+	r.HandleFunc("/users/{id}", getUserByID).Methods("GET")
+	r.HandleFunc("/users/email/{email}", getUserByEmail).Methods("GET")
 
 	return r
 }
@@ -42,6 +42,7 @@ func aboutHandler(w http.ResponseWriter, r *http.Request) {
 func getUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := userService.GetAllUsers()
 	if err != nil {
+		fmt.Printf("%v", err)
 		http.Error(w, "Failed to fetch users", http.StatusInternalServerError)
 		return
 	}
