@@ -1,3 +1,0 @@
-- type migration file manually by dumping the current date
-- prepare a script to import it
-- integrate
