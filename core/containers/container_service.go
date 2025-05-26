@@ -47,6 +47,7 @@ func (s *ContainerService) CreateContainer(
 	// Push the container to the cluster
 	createdContainer, err := s.ContainerRepo.Create(container)
 	if err != nil {
+		fmt.Printf("Failed to create container: %v\n", err)
 		return nil, err
 	}
 

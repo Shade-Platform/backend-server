@@ -1,6 +1,7 @@
 package main
 
 import (
+	// "flag"
 	"log"
 	"net/http"
 	"shade_web_server/infrastructure"
@@ -16,6 +17,8 @@ func main() {
 		log.Println("No .env file found, using environment variables")
 	}
 
+	// flag.Parse()
+
 	// Initialize the database connection
 	dbConn, err := infrastructure.NewDBConnection()
 	if err != nil {
@@ -24,24 +27,24 @@ func main() {
 	defer dbConn.Close()
 
 	// Initialize the cluster connection
-	// clientset, err := infrastructure.NewClusterConnection()
-	// if err != nil {
-	// 	log.Fatalf("Failed to connect to the cluster: %v", err)
-	// }
+	clientset, err := infrastructure.NewClusterConnection()
+	if err != nil {
+		log.Fatalf("Failed to connect to the cluster: %v", err)
+	}
 
 	// Check for command-line arguments (e.g., migrations)
-	infrastructure.MigrationsCliArguments(dbConn)
+	// infrastructure.MigrationsCliArguments(dbConn)
 
 	// Initialize the routers
 	userRouter := routers.InitializeUsersRouter(dbConn)
 	authRouter := routers.InitializeAuthRouter(dbConn)
-	// containerRouter := routers.InitializeContainersRouter(clientset)
+	containerRouter := routers.InitializeContainersRouter(clientset)
 
 	// Combine all routers into a single router
 	mainRouter := http.NewServeMux()
 	mainRouter.Handle("/users/", userRouter)
 	mainRouter.Handle("/auth/", authRouter)
-	// mainRouter.Handle("/container/", containerRouter)
+	mainRouter.Handle("/container/", containerRouter)
 
 	// Configure CORS
 	corsOptions := handlers.CORS(

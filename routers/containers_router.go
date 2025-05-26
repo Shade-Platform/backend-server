@@ -2,6 +2,7 @@ package routers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"shade_web_server/core/containers"
 	"time"
@@ -56,6 +57,7 @@ func createDeploymentHandler(w http.ResponseWriter, r *http.Request) {
 		container.MappedPort,
 	)
 	if err != nil {
+		fmt.Printf("%v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -213,14 +215,14 @@ func startDeploymentHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Get the container name from the URL path
 	var name = mux.Vars(r)["name"]
-	var userToken = r.Header.Get("Authorization")
+	// var userToken = r.Header.Get("Authorization")
 
 	// TODO: Validate the user has access to the container (zero trust)
 	// Placeholder for user validation
-	if userToken != "valid_token" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
+	// if userToken != "valid_token" {
+	// 	http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	// 	return
+	// }
 
 	// TODO: Get user from token
 	// Placeholder for user extraction from token
@@ -229,7 +231,7 @@ func startDeploymentHandler(w http.ResponseWriter, r *http.Request) {
 	// 	http.Error(w, "Unauthorized", http.StatusUnauthorized)
 	// 	return
 	// }
-	var user = "danny"
+	var user = "test"
 
 	err := containerService.StartContainer(user, name)
 	if err != nil {
