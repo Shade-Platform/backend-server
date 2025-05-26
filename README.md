@@ -68,3 +68,8 @@ Then you can visit the server using that url: "http://localhost:8080"
 - instead of running migrations, just dump data manually using this command
 
 `docker exec -i mysql_db mysqldump -u root -ppassword mydb | tee ./mydb_dump.sql`
+
+
+
+- to run the database: `docker-compose up --build`
+- to run go server: `go run main.go -kuberconfig ~/.kube/config`
