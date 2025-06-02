@@ -7,11 +7,17 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/utils/ptr"
 )
+
+type ContainerMetrics struct {
+	CPUUsage    float64 `json:"cpuUsage"`
+	MemoryUsage float64 `json:"memoryUsage"`
+}
 
 // Deployment (unless AddPods, Remove Pods)
 // ContainerRepository defines methods for interacting with the cluster.
@@ -22,6 +28,7 @@ type ContainerRepository interface {
 	Stop(namespace, name string) error                    // Stop container and destroy state
 	Start(namespace, name string) error                   // Start a stopped container
 	GetAllByNamespace(namespace string) ([]*Container, error)
+	GetMetrics(name string) (*ContainerMetrics, error)
 
 	// Error encountered when trying to pause a deployment: No supported methods in K8 API
 	// Pause(namespace, name string) error                   // Pause a container while maintaining state
@@ -30,6 +37,56 @@ type ContainerRepository interface {
 	// GetByTagName(tag string) (*[]Container, error) // Get container(s) with a specific tag
 	// AddPods(container *Container) error            // Add Pod instances to a container
 	// RemovePods(container *Container) error         // Remove Pos instances from a container
+}
+
+func (repo KubernetesContainerRepository) GetMetrics(name string) (*ContainerMetrics, error) {
+	namespace := "test"
+
+	deploymentClient := repo.CS.AppsV1().Deployments(namespace)
+
+	deployment, err := deploymentClient.Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get deployment: %v", err)
+	}
+
+	if len(deployment.Spec.Template.Spec.Containers) == 0 {
+		return nil, fmt.Errorf("deployment %s has no containers", name)
+	}
+
+	container := deployment.Spec.Template.Spec.Containers[0]
+
+	requestsCPU := float64(0)
+	requestsMem := float64(0)
+	limitsCPU := float64(0)
+	limitsMem := float64(0)
+
+	if cpuReq, ok := container.Resources.Requests["cpu"]; ok {
+		requestsCPU = float64(cpuReq.MilliValue())
+	}
+	if memReq, ok := container.Resources.Requests["memory"]; ok {
+		requestsMem = float64(memReq.Value())
+	}
+
+	if cpuLim, ok := container.Resources.Limits["cpu"]; ok {
+		limitsCPU = float64(cpuLim.MilliValue())
+	}
+	if memLim, ok := container.Resources.Limits["memory"]; ok {
+		limitsMem = float64(memLim.Value())
+	}
+
+	// Avoid division by zero
+	var cpuUsage, memUsage float64
+	if limitsCPU > 0 {
+		cpuUsage = (requestsCPU / limitsCPU) * 100
+	}
+	if limitsMem > 0 {
+		memUsage = (requestsMem / limitsMem) * 100
+	}
+
+	return &ContainerMetrics{
+		CPUUsage:    cpuUsage,
+		MemoryUsage: memUsage,
+	}, nil
 }
 
 // KubernetesContainerRepository is the implementation of ContainerRepository using Kubernetes.
@@ -174,6 +231,16 @@ func (cluster KubernetesContainerRepository) Create(container *Container) (*Cont
 								{
 									ContainerPort: container.MappedPort,
 									Name:          "test-port",
+								},
+							},
+							Resources: apiv1.ResourceRequirements{
+								Limits: apiv1.ResourceList{
+									apiv1.ResourceCPU:    resource.MustParse("500m"),
+									apiv1.ResourceMemory: resource.MustParse("256Mi"),
+								},
+								Requests: apiv1.ResourceList{
+									apiv1.ResourceCPU:    resource.MustParse("250m"),
+									apiv1.ResourceMemory: resource.MustParse("128Mi"),
 								},
 							},
 						},

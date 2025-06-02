@@ -27,6 +27,7 @@ func InitializeContainersRouter(clientset *kubernetes.Clientset) *mux.Router {
 	r.HandleFunc("/container/{name}/start", startDeploymentHandler).Methods("PATCH")
 	r.HandleFunc("/container/{name}/restart", restartDeploymentHandler).Methods("PATCH")
 	r.HandleFunc("/container/namespace/{name}", getDeploymentsByNamespace).Methods("GET")
+	r.HandleFunc("/container/{name}/metrics", getContainerMetricsHandler).Methods("GET")
 
 	// Error encountered when trying to pause a deployment: No supported methods in K8 API
 	// r.HandleFunc("/container/{name}/pause", pauseDeploymentHandler).Methods("PATCH")
@@ -309,6 +310,29 @@ func restartDeploymentHandler(w http.ResponseWriter, r *http.Request) {
 	err = containerService.StartContainer(user, name)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func getContainerMetricsHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+
+	vars := mux.Vars(r)
+	name := vars["name"]
+	if name == "" {
+		http.Error(w, "missing container name", http.StatusBadRequest)
+		return
+	}
+
+	metrics, err := containerService.ContainerRepo.GetMetrics(name)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := json.NewEncoder(w).Encode(metrics); err != nil {
+		http.Error(w, "failed to encode metrics", http.StatusInternalServerError)
 		return
 	}
 }
