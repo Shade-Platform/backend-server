@@ -21,6 +21,7 @@ type ContainerRepository interface {
 	Delete(namespace, name string) error                  // Remove a container from the cluster
 	Stop(namespace, name string) error                    // Stop container and destroy state
 	Start(namespace, name string) error                   // Start a stopped container
+	GetAllByNamespace(namespace string) ([]*Container, error)
 
 	// Error encountered when trying to pause a deployment: No supported methods in K8 API
 	// Pause(namespace, name string) error                   // Pause a container while maintaining state
@@ -41,10 +42,50 @@ func NewKubernetesContainerRepository(clientset *kubernetes.Clientset) Kubernete
 	return KubernetesContainerRepository{CS: clientset}
 }
 
+func (cluster KubernetesContainerRepository) GetAllByNamespace(namespace string) ([]*Container, error) {
+	// Ensure the namespace exists
+	_, err := cluster.CS.CoreV1().Namespaces().Get(context.Background(), namespace, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("namespace %q does not exist", namespace)
+	}
+
+	// Fetch all deployments in the namespace
+	deployments, err := cluster.CS.AppsV1().Deployments(namespace).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list deployments: %v", err)
+	}
+
+	var containers []*Container
+	for _, deployment := range deployments.Items {
+		// Fetch the associated service (optional)
+		service, err := cluster.CS.CoreV1().Services(namespace).Get(context.Background(), deployment.Name+"-service", metav1.GetOptions{})
+		var nodePort int32
+		if err == nil && len(service.Spec.Ports) > 0 {
+			nodePort = service.Spec.Ports[0].NodePort
+		}
+
+		// Build the container object
+		container := &Container{
+			Owner:         namespace,
+			Name:          deployment.Name,
+			ImageTag:      deployment.Spec.Template.Spec.Containers[0].Image,
+			Replicas:      *deployment.Spec.Replicas,
+			MappedPort:    nodePort,
+			CreationDate:  deployment.CreationTimestamp.Time,
+			ContainerTags: map[string]string{},
+		}
+
+		containers = append(containers, container)
+	}
+
+	return containers, nil
+}
+
 func (cluster KubernetesContainerRepository) GetByName(namespace, name string) (*Container, error) {
 
 	// Check if the namespace already exists
 	namespacesClient := cluster.CS.CoreV1().Namespaces()
+	// fmt.Printf("%v", namespacesClient)
 
 	_, err := namespacesClient.Get(context.Background(), namespace, metav1.GetOptions{})
 	if err == nil {
