@@ -17,8 +17,6 @@ func main() {
 		log.Println("No .env file found, using environment variables")
 	}
 
-	// flag.Parse()
-
 	// Initialize the database connection
 	dbConn, err := infrastructure.NewDBConnection()
 	if err != nil {
@@ -32,8 +30,8 @@ func main() {
 		log.Fatalf("Failed to connect to the cluster: %v", err)
 	}
 
-	// Check for command-line arguments (e.g., migrations)
-	// infrastructure.MigrationsCliArguments(dbConn)
+	// Check for command-line migration arguments
+	infrastructure.MigrationsCliArguments(dbConn)
 
 	// Initialize the routers
 	userRouter := routers.InitializeUsersRouter(dbConn)
@@ -45,6 +43,11 @@ func main() {
 	mainRouter.Handle("/users/", userRouter)
 	mainRouter.Handle("/auth/", authRouter)
 	mainRouter.Handle("/container/", containerRouter)
+	// added a health check endpoint for testing
+	mainRouter.Handle("/health", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	}))
 
 	// Configure CORS
 	corsOptions := handlers.CORS(

@@ -29,9 +29,6 @@ func InitializeContainersRouter(clientset *kubernetes.Clientset) *mux.Router {
 	r.HandleFunc("/container/namespace/{name}", getDeploymentsByNamespace).Methods("GET")
 	r.HandleFunc("/container/{name}/metrics", getContainerMetricsHandler).Methods("GET")
 
-	// Error encountered when trying to pause a deployment: No supported methods in K8 API
-	// r.HandleFunc("/container/{name}/pause", pauseDeploymentHandler).Methods("PATCH")
-
 	return r
 }
 
@@ -42,12 +39,6 @@ func getDeploymentsByNamespace(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	var namespace = mux.Vars(r)["name"]
-	// // Example: get namespace from URL query param ?namespace=...
-	// namespace := r.URL.Query().Get("namespace")
-	// if namespace == "" {
-	// 	http.Error(w, "missing 'namespace' query parameter", http.StatusBadRequest)
-	// 	return
-	// }
 
 	// Assuming you have a global or injected containerService or KubernetesContainerRepository instance
 	containers, err := containerService.ContainerRepo.GetAllByNamespace(namespace)

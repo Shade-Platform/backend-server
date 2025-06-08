@@ -59,12 +59,15 @@ Everything things is configured in the docker-compose file including the live re
 
 `docker-compose up --build -d`
 
-If it is the initial run you should also run the following migrations command to update the schema of the database
+If it is the initial run you should also run the following migrations command to update the schema of the database. This command will run all migrations - contact danny if you need more help on the different migration commands
 
 `docker exec -it app go run main.go migrate up`
 
-Then you can visit the server using that url: "http://localhost:8080"
+Please make sure that you have the minikube cluster running beforehand, otherwise the cluster connection won't work and return an error. The cluster configuration is located at .kube/config.local, which tries to access ~/.minikube, make sure that .minikube exists. (The docker file tries to link them to the container beforehand)
 
+Then you can visit the server using that url: "http://localhost:8080" (Of course there is nothing on the route "/", to check if the server is running: http://localhost:8080/health)
+
+If there's an erorr with migrations:
 - instead of running migrations, just dump data manually using this command
 
 `docker exec -i mysql_db mysqldump -u root -ppassword mydb | tee ./mydb_dump.sql`

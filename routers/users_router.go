@@ -11,10 +11,9 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// Initialize the userService variable
 var userService *users.UserService
 
-// InitializeUsersRouter sets up all the routes, accepting the DB connection as an argument
+// Sets up all the routes, accepting the DB connection as an argument
 func InitializeUsersRouter(dbConn *sql.DB) *mux.Router {
 	// Initialize the UserRepository and UserService
 	repo := users.NewMySQLUserRepository(dbConn) // Pass dbConn here
@@ -23,7 +22,6 @@ func InitializeUsersRouter(dbConn *sql.DB) *mux.Router {
 	r := mux.NewRouter()
 
 	// Define routes and pass userService to the handlers
-	// r.HandleFunc("/", aboutHandler).Methods("GET")
 	r.HandleFunc("/users/", getUsers).Methods("GET")
 	r.HandleFunc("/users/create/", createUserHandler).Methods("POST")
 	r.HandleFunc("/users/sub-users/create/", createSubUserHandler).Methods("POST")
@@ -31,11 +29,6 @@ func InitializeUsersRouter(dbConn *sql.DB) *mux.Router {
 	r.HandleFunc("/users/email/{email}", getUserByEmail).Methods("GET")
 
 	return r
-}
-
-// Handler for the root endpoint
-func aboutHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello go user, This is the Home page!!")
 }
 
 // Handler to get all users

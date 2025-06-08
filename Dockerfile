@@ -1,5 +1,5 @@
 # Start with the official Golang base image
-FROM golang:1.23.2
+FROM golang:1.23
 
 # Install reflex for file watching and reloading
 RUN go install github.com/cespare/reflex@latest
@@ -17,9 +17,9 @@ COPY . .
 # Expose the application port
 EXPOSE 8080
 
-# Command to run the application with reflex for live-reload
+# Command to run the application with reflex for live-reload (whenever any .go file changes)
 CMD ["reflex", "-s", "-r", "\\.go$", "--", "go", "run", "main.go"]
 # CMD ["reflex", "-s", "-r", "\\.go$", "--", "go", "run", "main.go", "migrate", "up"]
 
-# Run main.go
+# Run main.go (for production we will consider building it first)
 # CMD ["go", "run", "main.go"]

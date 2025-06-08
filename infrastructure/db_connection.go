@@ -10,6 +10,9 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
+const TIME_OUT = 10 // Maximum number of retries to connect to the database
+
+// NewDBConnection initializes a new database connection using environment variables.
 func NewDBConnection() (*sql.DB, error) {
 	// Get database connection details from environment variables
 	dbUser := os.Getenv("DB_USER")
@@ -18,10 +21,11 @@ func NewDBConnection() (*sql.DB, error) {
 	dbPort := os.Getenv("DB_PORT")
 	dbName := os.Getenv("DB_NAME")
 
+	// Danny: Removed the check to allow empty environment variables for testing purposes.
 	// Check if environment variables are empty and log an error
-	if dbUser == "" || dbPassword == "" || dbHost == "" || dbPort == "" || dbName == "" {
-		log.Fatalf("Missing required database environment variables: DB_USER=%s, DB_PASSWORD=%s, DB_HOST=%s, DB_PORT=%s, DB_NAME=%s", dbUser, dbPassword, dbHost, dbPort, dbName)
-	}
+	// if dbUser == "" || dbPassword == "" || dbHost == "" || dbPort == "" || dbName == "" {
+	// 	log.Fatalf("Missing required database environment variables: DB_USER=%s, DB_PASSWORD=%s, DB_HOST=%s, DB_PORT=%s, DB_NAME=%s", dbUser, dbPassword, dbHost, dbPort, dbName)
+	// }
 
 	// Create the DSN (Data Source Name) for the database connection
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", dbUser, dbPassword, dbHost, dbPort, dbName)
@@ -44,7 +48,7 @@ func NewDBConnection() (*sql.DB, error) {
 			}
 		}
 
-		if tries >= 10 {
+		if tries >= TIME_OUT {
 			log.Fatalf("Failed to connect to the database after %d tries", tries)
 			return nil, err
 		}

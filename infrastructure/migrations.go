@@ -13,19 +13,13 @@ import (
 
 // runMigrations runs database migrations based on the specified action (up, down, force).
 func runMigrations(db *sql.DB, action string, version string) {
-	// Debug: Print current working directory
-	wd, err := os.Getwd()
-	if err != nil {
-		log.Fatalf("Failed to get working directory: %v", err)
-	}
-	log.Printf("Current working directory: %s", wd)
-
-	// Debug: Print migration path
-	migrationPath := "file://app/infrastructure/migrations"
+	// file:// -> relative path
+	// file:/// -> absolute path
+	migrationPath := "file:///app/infrastructure/migrations"
 	log.Printf("Migration path: %s", migrationPath)
 
 	// Create a MySQL driver instance from the provided *sql.DB
-	driver, err := mysql.WithInstance(db, &mysql.Config{})
+	driver, err := mysql.WithInstance(db, &mysql.Config{DatabaseName: "mydb"})
 	if err != nil {
 		log.Fatalf("Failed to create MySQL driver instance: %v", err)
 	}
@@ -38,6 +32,13 @@ func runMigrations(db *sql.DB, action string, version string) {
 	)
 	if err != nil {
 		log.Fatalf("Failed to initialize migrate: %v", err)
+	}
+
+	ver, dirty, err := m.Version()
+	if err != nil && err != migrate.ErrNilVersion {
+		log.Printf("Could not get migration version: %v", err)
+	} else {
+		log.Printf("Current migration version: %d, dirty: %v", ver, dirty)
 	}
 
 	// Perform the migration action
@@ -91,7 +92,6 @@ func MigrationsCliArguments(dbConn *sql.DB) {
 				version = os.Args[3]
 			}
 
-			// Run migrations
 			runMigrations(dbConn, action, version)
 
 			// Exit the application after migrations are done
