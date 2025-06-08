@@ -1,5 +1,5 @@
 # Start with the official Golang base image
-FROM golang:1.23
+FROM golang:1.23-alpine
 
 # Install reflex for file watching and reloading
 RUN go install github.com/cespare/reflex@latest
