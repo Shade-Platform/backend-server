@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"shade_web_server/core/auth"
 	"shade_web_server/core/users"
-
+	"shade_web_server/middleware"
 	"github.com/gorilla/mux"
 )
 
@@ -30,6 +30,16 @@ func InitializeAuthRouter(dbConn *sql.DB) *mux.Router {
 	r.HandleFunc("/auth/login/", func(w http.ResponseWriter, r *http.Request) {
 		loginHandler(w, r, authService)
 	}).Methods("POST")
+
+	r.Handle("/auth/me/", middleware.JWTAuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		userID := r.Context().Value(middleware.UserIDKey).(string)
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "Authenticated successfully",
+			"user_id": userID,
+		})
+	}))).Methods("GET")
 
 	return r
 }
