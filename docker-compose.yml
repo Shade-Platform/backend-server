@@ -34,6 +34,8 @@ services:
       MYSQL_PASSWORD: password
     volumes:
       - shade_mysql_data:/var/lib/mysql
+      - mysql-keyring:/var/lib/mysql-keyring
+      - ./infrastructure/mysql.cnf:/etc/mysql/conf.d/mysql.cnf:ro
     ports:
       - "3306:3306"
     networks:
@@ -86,6 +88,7 @@ services:
 
 volumes:
   shade_mysql_data:
+  mysql-keyring:
   esdata:
 
 networks:

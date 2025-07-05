@@ -1,0 +1,8 @@
+[mysqld]
+early-plugin-load=keyring_file.so
+keyring_file_data=/var/lib/mysql-keyring/keyring
+default_table_encryption=ON
+innodb_file_per_table=ON
+innodb_redo_log_encrypt=ON
+innodb_undo_log_encrypt=ON
+binlog_encryption=ON
