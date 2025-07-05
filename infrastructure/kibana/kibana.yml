@@ -1,0 +1,7 @@
+server.name: kibana
+server.host: "0.0.0.0"
+elasticsearch.hosts: [ "http://elasticsearch:9200" ]
+
+xpack.encryptedSavedObjects.encryptionKey: "oPy30YsnLx2PPZKYR8HQ2oQQbg3hBDlHaEXP+fA6wNM="  # must be exactly 32 chars
+xpack.reporting.encryptionKey: "EampEteqQiR/yNrDmGJp+75a1jakUanBWgOclnvS8go="
+xpack.security.encryptionKey: "a5X/HVSM3S73iSmfFlOoj6qzjk9wGOgrlVN7veQiVn8="
