@@ -1,0 +1,12 @@
+{"event":"signup_success","ip":"172.18.0.1:48978","level":"info","method":"POST","msg":"User signed up","path":"/auth/signup/","time":"2025-07-04T12:23:48Z","user":"epic@epic.epic"}
+{"error":"invalid email or password","event":"login_failed","ip":"172.18.0.1:54152","level":"warning","method":"POST","msg":"Login failed","path":"/auth/login/","time":"2025-07-04T12:25:50Z","user":"te"}
+{"error":"invalid email or password","event":"login_failed","ip":"172.18.0.1:54152","level":"warning","method":"POST","msg":"Login failed","path":"/auth/login/","time":"2025-07-04T12:25:50Z","user":"te"}
+{"error":"invalid email or password","event":"login_failed","ip":"172.18.0.1:54152","level":"warning","method":"POST","msg":"Login failed","path":"/auth/login/","time":"2025-07-04T12:25:50Z","user":"te"}
+{"error":"invalid email or password","event":"login_failed","ip":"172.18.0.1:54152","level":"warning","method":"POST","msg":"Login failed","path":"/auth/login/","time":"2025-07-04T12:25:50Z","user":"te"}
+{"error":"invalid email or password","event":"login_failed","ip":"172.18.0.1:54152","level":"warning","method":"POST","msg":"Login failed","path":"/auth/login/","time":"2025-07-04T12:25:51Z","user":"te"}
+{"error":"invalid email or password","event":"login_failed","ip":"172.18.0.1:54152","level":"warning","method":"POST","msg":"Login failed","path":"/auth/login/","time":"2025-07-04T12:25:51Z","user":"te"}
+{"error":"invalid email or password","event":"login_failed","ip":"172.18.0.1:54152","level":"warning","method":"POST","msg":"Login failed","path":"/auth/login/","time":"2025-07-04T12:25:51Z","user":"te"}
+{"error":"invalid email or password","event":"login_failed","ip":"172.18.0.1:54152","level":"warning","method":"POST","msg":"Login failed","path":"/auth/login/","time":"2025-07-04T12:27:06Z","user":"epic"}
+{"event":"login_success","ip":"172.18.0.1:54152","level":"info","method":"POST","msg":"Login successful","path":"/auth/login/","time":"2025-07-04T12:27:17Z","user":"epic@epic.epic"}
+{"event":"auth_me","ip":"172.18.0.1:54266","level":"info","msg":"Token verified successfully","time":"2025-07-04T12:27:17Z","user_id":"804eec4e-d9e9-435e-b47f-7421500ae0cf"}
+{"event":"auth_me","ip":"172.18.0.1:54266","level":"info","msg":"Token verified successfully","time":"2025-07-04T12:27:17Z","user_id":"804eec4e-d9e9-435e-b47f-7421500ae0cf"}

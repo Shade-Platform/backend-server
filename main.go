@@ -2,9 +2,10 @@ package main
 
 import (
 	// "flag"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"shade_web_server/infrastructure"
+	"shade_web_server/infrastructure/logger"
 	"shade_web_server/routers"
 
 	"github.com/gorilla/handlers"
@@ -12,6 +13,8 @@ import (
 )
 
 func main() {
+	logger.InitLogger()
+
 	// Load the .env file if present
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, using environment variables")
