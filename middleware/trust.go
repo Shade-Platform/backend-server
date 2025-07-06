@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-const geoIPTimeout = 500 * time.Millisecond
+// const geoIPTimeout = 500 * time.Millisecond
 
 // TrustMiddleware runs the trust‑score check before anything else.
 func TrustMiddleware(next http.Handler) http.Handler {
@@ -20,8 +20,8 @@ func TrustMiddleware(next http.Handler) http.Handler {
 
 		result := trust.DefaultTrustEngine.CalculateTrustScore(ctx, ip, ua)
 
-		if penalized, penalty := trust.FailedTracker.ShouldPenalize(ip); penalized {
-			result.Score += penalty
+		if penalized, _ := trust.FailedTracker.ShouldPenalize(ip); penalized {
+			result.Score = 0
 			result.Reasons = append(result.Reasons, "Too many failed login attempts")
 		}
 

@@ -269,32 +269,21 @@ func isPrivateIP(ipStr string) bool {
 
 // GetIPFromRequest extracts client IP from HTTP request
 func GetIPFromRequest(r *http.Request) string {
-	// Check headers for proxy information
-	headers := []string{"X-Forwarded-For", "X-Real-Ip", "CF-Connecting-IP"}
-	for _, header := range headers {
-		if ip := r.Header.Get(header); ip != "" {
-			parts := strings.Split(ip, ",")
-			clientIP := strings.TrimSpace(parts[0])
-			if net.ParseIP(clientIP) != nil {
-				return clientIP
-			}
-		}
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		ips := strings.Split(xff, ",")
+		return strings.TrimSpace(ips[0])
 	}
-
-	// Validate RemoteAddr
+	if realIP := r.Header.Get("X-Real-IP"); realIP != "" {
+		return realIP
+	}
+	if cfIP := r.Header.Get("CF-Connecting-IP"); cfIP != "" {
+		return cfIP
+	}
 	ip, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
-		// Fallback for invalid format
-		if net.ParseIP(r.RemoteAddr) != nil {
-			return r.RemoteAddr
-		}
-		return "invalid_ip"
+		return r.RemoteAddr
 	}
-
-	if net.ParseIP(ip) != nil {
-		return ip
-	}
-	return "invalid_ip"
+	return ip
 }
 
 var DefaultTrustEngine = NewDefaultTrustEngine()
