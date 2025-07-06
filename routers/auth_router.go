@@ -35,15 +35,15 @@ func InitializeAuthRouter(dbConn *sql.DB) *mux.Router {
 		userID := r.Context().Value(middleware.UserIDKey).(string)
 
 		logger.Log.WithFields(map[string]interface{}{
-			"event":   "auth_me",
-			"user_id": userID,
-			"ip":      r.RemoteAddr,
+			"event":  "auth_me",
+			"userID": userID,
+			"ip":     r.RemoteAddr,
 		}).Info("Token verified successfully")
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{
 			"message": "Authenticated successfully",
-			"user_id": userID,
+			"userID":  userID,
 		})
 	}))).Methods("GET")
 

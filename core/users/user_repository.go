@@ -87,7 +87,7 @@ func (repo *MySQLUserRepository) SaveSubUser(user *User) (*User, error) {
 func (repo *MySQLUserRepository) FindByID(id uuid.UUID) (*User, error) {
 	// Prepare the query to fetch the user by ID
 	query := `
-		SELECT id, name, email, password, root_user_id 
+		SELECT id, name, email, root_user_id 
 		FROM users 
 		WHERE id = ?
 	`
@@ -95,7 +95,7 @@ func (repo *MySQLUserRepository) FindByID(id uuid.UUID) (*User, error) {
 	// Execute the query and scan the result into a User struct
 	var user User
 	// err := repo.DB.QueryRow(query, id).Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.RootUserID)
-	err := repo.DB.QueryRow(query, id).Scan(&user.ID, &user.Name, &user.Email, &user.Password)
+	err := repo.DB.QueryRow(query, id).Scan(&user.ID, &user.Name, &user.Email, &user.RootUserID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("user not found")

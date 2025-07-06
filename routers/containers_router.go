@@ -158,43 +158,6 @@ func deleteDeploymentHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"message": "Container deleted"})
 }
 
-// func pauseDeploymentHandler(w http.ResponseWriter, r *http.Request) {
-// 	w.Header().Set("Access-Control-Allow-Origin", "*") // Allow all origins
-// 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-// 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-// 	w.Header().Set("Content-Type", "application/json")
-
-// 	// Get the container name from the URL path
-// 	var name = mux.Vars(r)["name"]
-// 	var userToken = r.Header.Get("Authorization")
-
-// 	// TODO: Validate the user has access to the container (zero trust)
-// 	// Placeholder for user validation
-// 	if userToken != "valid_token" {
-// 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-// 		return
-// 	}
-
-// 	// TODO: Get user from token
-// 	// Placeholder for user extraction from token
-// 	// user, err := getUserFromToken(userToken)
-// 	// if err != nil {
-// 	// 	http.Error(w, "Unauthorized", http.StatusUnauthorized)
-// 	// 	return
-// 	// }
-// 	var user = "danny"
-
-// 	err := containerService.PauseContainer(user, name)
-// 	if err != nil {
-// 		http.Error(w, err.Error(), http.StatusInternalServerError)
-// 		return
-// 	}
-
-// 	w.WriteHeader(http.StatusAccepted)
-
-// 	json.NewEncoder(w).Encode(map[string]string{"message": "Container paused"})
-// }
-
 func stopDeploymentHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*") // Allow all origins
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
