@@ -2,11 +2,12 @@ package main
 
 import (
 	// "flag"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"shade_web_server/infrastructure"
 	"shade_web_server/infrastructure/logger"
 	"shade_web_server/routers"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/gorilla/handlers"
 	"github.com/joho/godotenv"
@@ -40,14 +41,20 @@ func main() {
 	userRouter := routers.InitializeUsersRouter(dbConn)
 	authRouter := routers.InitializeAuthRouter(dbConn)
 	containerRouter := routers.InitializeContainersRouter(clientset)
+	trustRouter := routers.InitializeTrustRouter()
 
 	// Combine all routers into a single router
 	mainRouter := http.NewServeMux()
 	mainRouter.Handle("/users/", userRouter)
 	mainRouter.Handle("/auth/", authRouter)
 	mainRouter.Handle("/container/", containerRouter)
+	mainRouter.Handle("/trust/", trustRouter)
 	// added a health check endpoint for testing
 	mainRouter.Handle("/health", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.Log.WithFields(map[string]interface{}{
+			"event": "Health Check",
+			"ip":    r.RemoteAddr,
+		}).Info("Sys Up")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	}))

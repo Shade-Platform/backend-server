@@ -4,8 +4,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"shade_web_server/core/auth"
+	"shade_web_server/core/trust"
 	"shade_web_server/core/users"
 	"shade_web_server/infrastructure/logger"
 	"shade_web_server/middleware"
@@ -114,26 +116,45 @@ func loginHandler(w http.ResponseWriter, r *http.Request, authService *auth.Auth
 		return
 	}
 
+	// Get client IP before authentication
+	clientIP := trust.GetIPFromRequest(r)
+	startTime := time.Now()
+
 	token, err := authService.AuthenticateUser(requestBody.Email, requestBody.Password)
 	if err != nil {
+		// Record failed login attempt and get current count
+		failedCount := trust.FailedTracker.RecordFailure(clientIP)
+		timeUntilReset := trust.FailedTracker.GetTimeUntilReset(clientIP)
+
 		logger.Log.WithFields(map[string]interface{}{
-			"event":  "login_failed",
-			"user":   requestBody.Email,
-			"ip":     r.RemoteAddr,
-			"method": r.Method,
-			"path":   r.URL.Path,
-			"error":  err.Error(),
+			"event":                "login_failed",
+			"user":                 requestBody.Email,
+			"ip":                   clientIP,
+			"method":               r.Method,
+			"path":                 r.URL.Path,
+			"error":                err.Error(),
+			"duration":             time.Since(startTime).Milliseconds(),
+			"failed_attempts":      failedCount,
+			"time_until_reset_sec": int(timeUntilReset.Seconds()),
 		}).Warn("Login failed")
-		http.Error(w, "Invalid credentials: "+err.Error(), http.StatusUnauthorized)
+
+		// Return helpful information to client
+		w.Header().Set("X-RateLimit-Limit", "3")
+
+		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
 
+	// On successful login, reset failed attempts for this IP
+	trust.FailedTracker.ResetFailures(clientIP)
+
 	logger.Log.WithFields(map[string]interface{}{
-		"event":  "login_success",
-		"user":   requestBody.Email,
-		"ip":     r.RemoteAddr,
-		"method": r.Method,
-		"path":   r.URL.Path,
+		"event":    "login_success",
+		"user":     requestBody.Email,
+		"ip":       clientIP,
+		"method":   r.Method,
+		"path":     r.URL.Path,
+		"duration": time.Since(startTime).Milliseconds(),
 	}).Info("Login successful")
 
 	response := map[string]string{"token": token}
@@ -142,6 +163,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request, authService *auth.Auth
 		logger.Log.WithFields(map[string]interface{}{
 			"event": "login_json_error",
 			"user":  requestBody.Email,
+			"ip":    clientIP,
 			"error": err.Error(),
 		}).Error("Failed to marshal login response")
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
