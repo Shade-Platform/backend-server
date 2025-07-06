@@ -28,14 +28,14 @@ func main() {
 	}
 	defer dbConn.Close()
 
+	// Check for command-line migration arguments
+	infrastructure.MigrationsCliArguments(dbConn)
+
 	// Initialize the cluster connection
 	clientset, err := infrastructure.NewClusterConnection()
 	if err != nil {
 		log.Fatalf("Failed to connect to the cluster: %v", err)
 	}
-
-	// Check for command-line migration arguments
-	infrastructure.MigrationsCliArguments(dbConn)
 
 	// Initialize the routers
 	userRouter := routers.InitializeUsersRouter(dbConn)
