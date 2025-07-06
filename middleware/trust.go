@@ -15,11 +15,11 @@ func TrustMiddleware(next http.Handler) http.Handler {
 		ip := trust.GetIPFromRequest(r)
 		ua := r.UserAgent()
 
-		ctx, cancel := context.WithTimeout(r.Context(), geoIPTimeout)
+		ctx, cancel := context.WithTimeout(r.Context(), 500*time.Millisecond)
 		defer cancel()
+
 		result := trust.DefaultTrustEngine.CalculateTrustScore(ctx, ip, ua)
 
-		// Ask if failed login attempts should penalize further
 		if penalized, penalty := trust.FailedTracker.ShouldPenalize(ip); penalized {
 			result.Score += penalty
 			result.Reasons = append(result.Reasons, "Too many failed login attempts")

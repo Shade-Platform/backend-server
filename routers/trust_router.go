@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"shade_web_server/core/trust"
 	"shade_web_server/infrastructure/logger"
+	"shade_web_server/middleware"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -14,7 +15,7 @@ import (
 // InitializeTrustRouter sets up the trust score route.
 func InitializeTrustRouter() *mux.Router {
 	r := mux.NewRouter()
-	r.HandleFunc("/trust/score", getTrustScoreHandler).Methods("GET")
+	r.Handle("/trust/score", middleware.TrustMiddleware(http.HandlerFunc(getTrustScoreHandler))).Methods("GET")
 	return r
 }
 
@@ -34,16 +35,19 @@ func getTrustScoreHandler(w http.ResponseWriter, r *http.Request) {
 		result.Reasons = append(result.Reasons, "Too many failed login attempts")
 	}
 
+	failedCount := trust.FailedTracker.GetFailureCount(ip)
+
 	// Logging to Kibana
 	logger.Log.WithFields(map[string]interface{}{
-		"event":      "trust_check",
-		"ip":         result.ClientIP,
-		"user_agent": result.UserAgent,
-		"score":      result.Score,
-		"reasons":    result.Reasons,
-		"country":    result.Country,
-		"timezone":   result.Timezone,
-		"local_hour": result.LocalHour,
+		"event":           "trust_check",
+		"ip":              result.ClientIP,
+		"user_agent":      result.UserAgent,
+		"score":           result.Score,
+		"reasons":         result.Reasons,
+		"country":         result.Country,
+		"timezone":        result.Timezone,
+		"local_hour":      result.LocalHour,
+		"failed_attempts": failedCount,
 	}).Info("Trust score evaluated")
 
 	w.Header().Set("Content-Type", "application/json")
