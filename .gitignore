@@ -1,3 +1,4 @@
 app
 .env
 notes.md
+logs/app.log
