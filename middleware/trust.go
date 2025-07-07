@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-const geoIPTimeout = 500 * time.Millisecond
+// const geoIPTimeout = 500 * time.Millisecond
 
 // TrustMiddleware runs the trust‑score check before anything else.
 func TrustMiddleware(next http.Handler) http.Handler {
