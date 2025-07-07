@@ -58,3 +58,12 @@ func (s *AuthService) AuthenticateUser(email string, password string) (string, e
 
 	return token, nil
 }
+
+func (s *AuthService) GetUserID(email string) (string, error) {
+	user, err := s.UserService.GetUserByEmail(email)
+	if err != nil {
+		return "", errors.New("invalid email")
+	}
+
+	return user.ID.String(), nil
+}

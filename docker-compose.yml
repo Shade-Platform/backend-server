@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
     container_name: shade_server
     environment:
-      - DB_HOST=shade_mysql
+      - DB_HOST=localhost
       - DB_PORT=3306
       - DB_USER=root
       - DB_PASSWORD=password
@@ -20,8 +20,9 @@ services:
       - ./logs:/logs
       - .kube/config.local:/root/.kube/config:ro
       - ${HOME}/.minikube:/root/.minikube:ro
-    networks:
-      - shade_network
+    # networks:
+    #   - shade_network
+    network_mode: host
 
   shade_mysql:
     image: mysql:8.0
@@ -36,8 +37,9 @@ services:
       - ./infrastructure/mysql.cnf:/etc/mysql/conf.d/mysql.cnf:ro
     ports:
       - "3306:3306"
-    networks:
-      - shade_network
+    # networks:
+    #   - shade_network
+    network_mode: host
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
@@ -54,8 +56,10 @@ services:
       - esdata:/usr/share/elasticsearch/data
     ports:
       - "9200:9200"
-    networks:
-      - shade_network
+    # networks:
+      # - shade_network
+    network_mode: host
+
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.13.4
@@ -66,8 +70,10 @@ services:
       - ./infrastructure/kibana/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
     depends_on:
       - elasticsearch
-    networks:
-      - shade_network
+    # networks:
+    #   - shade_network
+    network_mode: host
+
 
   logstash:
     image: docker.elastic.co/logstash/logstash:8.13.4
@@ -81,14 +87,15 @@ services:
       - "9600:9600"
     depends_on:
       - elasticsearch
-    networks:
-      - shade_network
+    # networks:
+    #   - shade_network
+    network_mode: host
 
 volumes:
   shade_mysql_data:
   mysql-keyring:
   esdata:
 
-networks:
-  shade_network:
-    driver: bridge
+# networks:
+#   shade_network:
+#     driver: bridge

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"shade_web_server/core/containers"
+	"shade_web_server/infrastructure/logger"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -34,20 +35,19 @@ func InitializeContainersRouter(clientset *kubernetes.Clientset) *mux.Router {
 
 func getDeploymentsByNamespace(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*") // Allow all origins
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 	w.Header().Set("Content-Type", "application/json")
 
 	var namespace = mux.Vars(r)["name"]
 
-	// Assuming you have a global or injected containerService or KubernetesContainerRepository instance
 	containers, err := containerService.ContainerRepo.GetAllByNamespace(namespace)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Encode containers as JSON response
+	// Encode containers as JSON
 	if err := json.NewEncoder(w).Encode(containers); err != nil {
 		http.Error(w, "failed to encode response", http.StatusInternalServerError)
 		return
@@ -68,6 +68,15 @@ func createDeploymentHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
+
+	logger.Log.WithFields(map[string]interface{}{
+		"event":     "container_creation_attempt",
+		"container": container.Name,
+		"image":     container.ImageTag,
+		"ip":        r.RemoteAddr,
+		"method":    r.Method,
+		"path":      r.URL.Path,
+	}).Info("Container creation request")
 
 	// Assuming the container service is already initialized, create the deployment
 	createdDeployment, err := containerService.CreateContainer(

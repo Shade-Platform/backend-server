@@ -39,7 +39,7 @@ func main() {
 
 	// Initialize the routers
 	userRouter := routers.InitializeUsersRouter(dbConn)
-	authRouter := routers.InitializeAuthRouter(dbConn)
+	authRouter := routers.InitializeAuthRouter(dbConn, clientset)
 	containerRouter := routers.InitializeContainersRouter(clientset)
 	trustRouter := routers.InitializeTrustRouter()
 
