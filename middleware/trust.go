@@ -20,7 +20,7 @@ func TrustMiddleware(next http.Handler) http.Handler {
 
 		result := trust.DefaultTrustEngine.CalculateTrustScore(ctx, ip, ua)
 
-		if penalized, _ := trust.FailedTracker.ShouldPenalize(ip); penalized {
+		if penalized,_ := trust.FailedTracker.ShouldPenalize(ip); penalized {
 			result.Score = 0
 			result.Reasons = append(result.Reasons, "Too many failed login attempts")
 		}

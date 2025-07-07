@@ -15,7 +15,9 @@ type UserService struct {
 
 // NewUserService creates and returns a new instance of UserService.
 func NewUserService(repo UserRepository) *UserService {
-	return &UserService{UserRepo: repo}
+	return &UserService{
+		UserRepo: repo,
+	}
 }
 
 // GetAllUsers retrieves all users from the database.
@@ -24,6 +26,7 @@ func (s *UserService) GetAllUsers() ([]*User, error) {
 }
 
 // CreateUser handles the creation of a new user.
+// Calls create namespace to create a new namespace for the user
 func (s *UserService) CreateUser(name, email, password string) (*User, error) {
 	// Hash the password before saving it
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)

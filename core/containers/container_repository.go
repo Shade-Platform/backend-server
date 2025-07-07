@@ -14,6 +14,16 @@ import (
 	"k8s.io/utils/ptr"
 )
 
+// KubernetesContainerRepository is the implementation of ContainerRepository using Kubernetes.
+type KubernetesContainerRepository struct {
+	CS *kubernetes.Clientset
+}
+
+// NewKubernetesContainerRepository creates a new KubernetesContainerRepository
+func NewKubernetesContainerRepository(clientset *kubernetes.Clientset) KubernetesContainerRepository {
+	return KubernetesContainerRepository{CS: clientset}
+}
+
 type ContainerMetrics struct {
 	CPUUsage    float64 `json:"cpuUsage"`
 	MemoryUsage float64 `json:"memoryUsage"`
@@ -87,16 +97,6 @@ func (repo KubernetesContainerRepository) GetMetrics(name string) (*ContainerMet
 		CPUUsage:    cpuUsage,
 		MemoryUsage: memUsage,
 	}, nil
-}
-
-// KubernetesContainerRepository is the implementation of ContainerRepository using Kubernetes.
-type KubernetesContainerRepository struct {
-	CS *kubernetes.Clientset
-}
-
-// NewKubernetesContainerRepository creates a new KubernetesContainerRepository
-func NewKubernetesContainerRepository(clientset *kubernetes.Clientset) KubernetesContainerRepository {
-	return KubernetesContainerRepository{CS: clientset}
 }
 
 func (cluster KubernetesContainerRepository) GetAllByNamespace(namespace string) ([]*Container, error) {
@@ -321,36 +321,6 @@ func (cluster KubernetesContainerRepository) Delete(namespace, name string) erro
 
 	return nil
 }
-
-// Pauses a deployment
-// Error encountered when trying to pause a deployment: No supported methods in K8 API
-// func (cluster KubernetesContainerRepository) Pause(namespace, name string) error {
-
-// 	// Check if the namespace already exists
-// 	namespacesClient := cluster.CS.CoreV1().Namespaces()
-
-// 	if _, err := namespacesClient.Get(context.Background(), namespace, metav1.GetOptions{}); err == nil {
-// 		fmt.Printf("Namespace %q in fact exists.\n", namespace)
-// 	} else {
-// 		return fmt.Errorf("namespace %q does not exist", namespace)
-// 	}
-
-// 	deploymentClient := cluster.CS.AppsV1().Deployments(namespace)
-
-// 	deployment, err := deploymentClient.Get(context.Background(), name, metav1.GetOptions{})
-// 	if err != nil {
-// 		return fmt.Errorf("failed to get deployment: %v", err)
-// 	}
-
-// 	deployment.Spec.Paused = true
-
-// 	_, err = deploymentClient.Update(context.Background(), deployment, metav1.UpdateOptions{})
-// 	if err != nil {
-// 		return fmt.Errorf("failed to update deployment: %v", err)
-// 	}
-
-// 	return nil
-// }
 
 // Stops a deployment
 func (cluster KubernetesContainerRepository) Stop(namespace, name string) error {

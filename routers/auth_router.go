@@ -7,50 +7,54 @@ import (
 	"time"
 
 	"shade_web_server/core/auth"
+	"shade_web_server/core/namespace"
 	"shade_web_server/core/trust"
 	"shade_web_server/core/users"
 	"shade_web_server/infrastructure/logger"
 	"shade_web_server/middleware"
 
 	"github.com/gorilla/mux"
+	"k8s.io/client-go/kubernetes"
 )
 
 // InitializeAuthRouter sets up authentication routes
-func InitializeAuthRouter(dbConn *sql.DB) *mux.Router {
+func InitializeAuthRouter(dbConn *sql.DB, clientset *kubernetes.Clientset) *mux.Router {
 	repo := users.NewMySQLUserRepository(dbConn)
+	cluster := namespace.NewKubernetesNamespaceRepository(clientset)
 	userService := users.NewUserService(repo)
+	namespaceService := namespace.NewNamespaceService(cluster)
 	authService := auth.NewAuthService(userService)
 
 	r := mux.NewRouter()
 
 	r.HandleFunc("/auth/signup/", func(w http.ResponseWriter, r *http.Request) {
-		signupHandler(w, r, userService)
+		signupHandler(w, r, userService, namespaceService)
 	}).Methods("POST")
 
 	r.HandleFunc("/auth/login/", func(w http.ResponseWriter, r *http.Request) {
-		loginHandler(w, r, authService)
+		loginHandler(w, r, authService, namespaceService)
 	}).Methods("POST")
 
 	r.Handle("/auth/me/", middleware.JWTAuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userID := r.Context().Value(middleware.UserIDKey).(string)
 
 		logger.Log.WithFields(map[string]interface{}{
-			"event":   "auth_me",
-			"user_id": userID,
-			"ip":      r.RemoteAddr,
+			"event":  "auth_me",
+			"userID": userID,
+			"ip":     r.RemoteAddr,
 		}).Info("Token verified successfully")
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{
 			"message": "Authenticated successfully",
-			"user_id": userID,
+			"userID":  userID,
 		})
 	}))).Methods("GET")
 
 	return r
 }
 
-func signupHandler(w http.ResponseWriter, r *http.Request, userService *users.UserService) {
+func signupHandler(w http.ResponseWriter, r *http.Request, userService *users.UserService, namespaceService *namespace.NamespaceService) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
@@ -70,7 +74,7 @@ func signupHandler(w http.ResponseWriter, r *http.Request, userService *users.Us
 		return
 	}
 
-	_, err = userService.CreateUser(requestBody.Name, requestBody.Email, requestBody.Password)
+	user, err := userService.CreateUser(requestBody.Name, requestBody.Email, requestBody.Password)
 	if err != nil {
 		logger.Log.WithFields(map[string]interface{}{
 			"event":  "signup_failed",
@@ -82,6 +86,16 @@ func signupHandler(w http.ResponseWriter, r *http.Request, userService *users.Us
 		}).Error("Failed to create user")
 		http.Error(w, "Failed to create user: "+err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	// Each user has a unique namespace defined by their UID
+	err = namespaceService.CreateNamespace(user.ID.String())
+	if err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"event":   "namespace_creation_failed",
+			"user_id": user.ID.String(),
+			"error":   err.Error(),
+		}).Error("Failed to create namespace for new user")
 	}
 
 	logger.Log.WithFields(map[string]interface{}{
@@ -96,7 +110,7 @@ func signupHandler(w http.ResponseWriter, r *http.Request, userService *users.Us
 	json.NewEncoder(w).Encode(response)
 }
 
-func loginHandler(w http.ResponseWriter, r *http.Request, authService *auth.AuthService) {
+func loginHandler(w http.ResponseWriter, r *http.Request, authService *auth.AuthService, namespaceService *namespace.NamespaceService) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
@@ -147,6 +161,21 @@ func loginHandler(w http.ResponseWriter, r *http.Request, authService *auth.Auth
 
 	// On successful login, reset failed attempts for this IP
 	trust.FailedTracker.ResetFailures(clientIP)
+
+	// A way to create namespaces for existing users on login
+	userID, err := authService.GetUserID(requestBody.Email)
+
+	if err == nil && !namespaceService.Exists(userID) {
+		err := namespaceService.CreateNamespace(userID)
+
+		if err != nil {
+			logger.Log.WithFields(map[string]interface{}{
+				"event":   "namespace_creation_failed",
+				"user_id": userID,
+				"error":   err.Error(),
+			}).Info("Failed to create namespace for existing user")
+		}
+	}
 
 	logger.Log.WithFields(map[string]interface{}{
 		"event":    "login_success",

@@ -2,6 +2,7 @@ package infrastructure
 
 import (
 	"flag"
+	"fmt"
 	"path/filepath"
 
 	"k8s.io/client-go/kubernetes"
@@ -14,6 +15,7 @@ func NewClusterConnection() (*kubernetes.Clientset, error) {
 	// out of cluster config
 	var kubeconfig *string
 	if home := homedir.HomeDir(); home != "" {
+		fmt.Println(home)
 		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
 	} else {
 		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
