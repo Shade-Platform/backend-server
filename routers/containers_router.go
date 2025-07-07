@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"shade_web_server/core/containers"
 	"shade_web_server/infrastructure/logger"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -43,15 +44,65 @@ func getDeploymentsByNamespace(w http.ResponseWriter, r *http.Request) {
 
 	containers, err := containerService.ContainerRepo.GetAllByNamespace(namespace)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		logger.Log.WithFields(map[string]interface{}{
+			"event": "deployments_error",
+			"user":  namespace,
+			"error": err.Error(),
+		}).Error("Failed to get containers belonging to user")
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	// Encode containers as JSON
-	if err := json.NewEncoder(w).Encode(containers); err != nil {
-		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+	query := r.URL.Query()
+
+	if !query.Has("hours") {
+		// Encode containers as JSON
+		if err := json.NewEncoder(w).Encode(containers); err != nil {
+			logger.Log.WithFields(map[string]interface{}{
+				"event": "deployments_today_error",
+				"user":  namespace,
+				"error": err.Error(),
+			}).Error("Failed to encode json response")
+			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		}
 		return
 	}
+
+	hours, err := strconv.Atoi(query.Get("hours"))
+
+	if err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"event": "deployments_today_error",
+			"user":  namespace,
+			"error": err.Error(),
+		}).Error("Failed to encode json response")
+		http.Error(w, "Invalid query parameter hours", http.StatusBadRequest)
+		return
+	}
+
+	today := 0
+	for _, container := range containers {
+		if time.Since(container.CreationDate) <= time.Duration(hours)*time.Hour {
+			today += 1
+		}
+	}
+
+	response, err := json.Marshal(map[string]interface{}{
+		"deployments": today,
+		"hours":       hours,
+	})
+
+	if err != nil {
+		logger.Log.WithFields(map[string]interface{}{
+			"event": "deployments_today_error",
+			"user":  namespace,
+			"error": err.Error(),
+		}).Error("Failed to marshal deployments today response")
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(response)
 }
 
 // TODO: Implement user validation instead of using value from request body
