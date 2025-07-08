@@ -78,3 +78,7 @@ func (s *ContainerService) StopContainer(user, name string) error {
 func (s *ContainerService) StartContainer(user, name string) error {
 	return s.ContainerRepo.Start(user, name)
 }
+
+func (s *ContainerService) GetContainerMetrics(user, name string) (*ContainerMetrics, error) {
+	return s.ContainerRepo.GetMetrics(user, name)
+}

@@ -15,7 +15,7 @@ type UserRepository interface {
 	SaveSubUser(user *User) (*User, error)   // Save a sub-user to the database
 	FindByID(id uuid.UUID) (*User, error)    // Retrieve a user by UUID
 	FindByEmail(email string) (*User, error) // Retrieve a user by email
-	FindAll() ([]*User, error)               // Retrieve all users
+	FindAll() (int, error)                   // Retrieve all users
 }
 
 // MySQLUserRepository is the implementation of UserRepository using MySQL.
@@ -129,37 +129,45 @@ func (repo *MySQLUserRepository) FindByEmail(email string) (*User, error) {
 	return &user, nil
 }
 
-// FindAll retrieves all users from the database.
-func (repo *MySQLUserRepository) FindAll() ([]*User, error) {
+// FindAll retrieves count of users from the database.
+func (repo *MySQLUserRepository) FindAll() (int, error) {
 	// Prepare the query to fetch all users
 	query := `
-		SELECT id, name, email
+		SELECT count(*)
 		FROM users
 	`
 
 	// Execute the query
 	rows, err := repo.DB.Query(query)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch users: %v", err)
+		return 0, fmt.Errorf("failed to fetch users: %v", err)
 	}
 	defer rows.Close()
 
-	// Loop through the rows and scan the data into User structs
-	var users []*User
-	for rows.Next() {
-		var user User
-		err := rows.Scan(&user.ID, &user.Name, &user.Email)
-		// err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.RootUserID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan user: %v", err)
-		}
-		users = append(users, &user)
+	var users int
+	rows.Next()
+	err = rows.Scan(&users)
+
+	if err != nil {
+		return 0, err
 	}
 
+	// Loop through the rows and scan the data into User structs
+	// var users []*User
+	// for rows.Next() {
+	// 	var user User
+	// 	err := rows.Scan(&user.ID, &user.Name, &user.Email)
+	// 	// err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.RootUserID)
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("failed to scan user: %v", err)
+	// 	}
+	// 	users = append(users, &user)
+	// }
+
 	// Check for errors that occurred during row iteration
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error occurred while reading rows: %v", err)
-	}
+	// if err := rows.Err(); err != nil {
+	// 	return nil, fmt.Errorf("error occurred while reading rows: %v", err)
+	// }
 
 	return users, nil
 }

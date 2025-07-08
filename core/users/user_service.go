@@ -21,7 +21,7 @@ func NewUserService(repo UserRepository) *UserService {
 }
 
 // GetAllUsers retrieves all users from the database.
-func (s *UserService) GetAllUsers() ([]*User, error) {
+func (s *UserService) GetAllUsers() (int, error) {
 	return s.UserRepo.FindAll()
 }
 

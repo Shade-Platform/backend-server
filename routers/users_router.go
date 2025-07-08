@@ -43,9 +43,14 @@ func getUsers(w http.ResponseWriter, r *http.Request) {
 	// Set the response header for JSON
 	w.Header().Set("Content-Type", "application/json")
 	// Encode the list of users into the response
-	if err := json.NewEncoder(w).Encode(users); err != nil {
-		http.Error(w, "Failed to encode users", http.StatusInternalServerError)
+	response := map[string]int{"users": users}
+	jsonResponse, err := json.Marshal(response)
+
+	if err != nil {
+		http.Error(w, "Failed to get users", http.StatusInternalServerError)
 	}
+
+	w.Write(jsonResponse)
 }
 
 // Handler to create a new user

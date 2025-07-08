@@ -32,15 +32,15 @@ func main() {
 	infrastructure.MigrationsCliArguments(dbConn)
 
 	// Initialize the cluster connection
-	clientset, err := infrastructure.NewClusterConnection()
+	cluster, metrics, err := infrastructure.NewClusterConnection()
 	if err != nil {
 		log.Fatalf("Failed to connect to the cluster: %v", err)
 	}
 
 	// Initialize the routers
 	userRouter := routers.InitializeUsersRouter(dbConn)
-	authRouter := routers.InitializeAuthRouter(dbConn, clientset)
-	containerRouter := routers.InitializeContainersRouter(clientset)
+	authRouter := routers.InitializeAuthRouter(dbConn, cluster)
+	containerRouter := routers.InitializeContainersRouter(cluster, metrics)
 	trustRouter := routers.InitializeTrustRouter()
 
 	// Combine all routers into a single router
