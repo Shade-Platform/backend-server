@@ -11,17 +11,22 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
+	metrics "k8s.io/metrics/pkg/client/clientset/versioned"
 	"k8s.io/utils/ptr"
 )
 
 // KubernetesContainerRepository is the implementation of ContainerRepository using Kubernetes.
 type KubernetesContainerRepository struct {
 	CS *kubernetes.Clientset
+	M  *metrics.Clientset
 }
 
 // NewKubernetesContainerRepository creates a new KubernetesContainerRepository
-func NewKubernetesContainerRepository(clientset *kubernetes.Clientset) KubernetesContainerRepository {
-	return KubernetesContainerRepository{CS: clientset}
+func NewKubernetesContainerRepository(clientset *kubernetes.Clientset, metrics *metrics.Clientset) KubernetesContainerRepository {
+	return KubernetesContainerRepository{
+		CS: clientset,
+		M:  metrics,
+	}
 }
 
 type ContainerMetrics struct {
@@ -38,7 +43,7 @@ type ContainerRepository interface {
 	Stop(namespace, name string) error                    // Stop container and destroy state
 	Start(namespace, name string) error                   // Start a stopped container
 	GetAllByNamespace(namespace string) ([]*Container, error)
-	GetMetrics(name string) (*ContainerMetrics, error)
+	GetMetrics(namespace, name string) (*ContainerMetrics, error)
 
 	// Error encountered when trying to pause a deployment: No supported methods in K8 API
 	// Pause(namespace, name string) error                   // Pause a container while maintaining state
@@ -49,9 +54,7 @@ type ContainerRepository interface {
 	// RemovePods(container *Container) error         // Remove Pos instances from a container
 }
 
-func (repo KubernetesContainerRepository) GetMetrics(name string) (*ContainerMetrics, error) {
-	namespace := "test"
-
+func (repo KubernetesContainerRepository) GetMetrics(namespace, name string) (*ContainerMetrics, error) {
 	deploymentClient := repo.CS.AppsV1().Deployments(namespace)
 
 	deployment, err := deploymentClient.Get(context.Background(), name, metav1.GetOptions{})
@@ -59,23 +62,38 @@ func (repo KubernetesContainerRepository) GetMetrics(name string) (*ContainerMet
 		return nil, fmt.Errorf("failed to get deployment: %v", err)
 	}
 
-	if len(deployment.Spec.Template.Spec.Containers) == 0 {
-		return nil, fmt.Errorf("deployment %s has no containers", name)
+	selector := metav1.FormatLabelSelector(deployment.Spec.Selector)
+
+	// List pods matching the selector
+	podList, err := repo.CS.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{
+		LabelSelector: selector,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list pods: %v", err)
+	}
+	if len(podList.Items) == 0 {
+		return nil, fmt.Errorf("no pods found for deployment %s", name)
+	}
+
+	// Use the first pod (or aggregate over all pods if you want)
+	podName := podList.Items[0].Name
+
+	podMetrics, err := repo.M.MetricsV1beta1().PodMetricses(namespace).Get(context.Background(), podName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var currentCpuUsage, currentMemoryUsage int64 = 0, 0
+
+	for _, c := range podMetrics.Containers {
+		currentCpuUsage = c.Usage.Cpu().MilliValue()  // CPU in millicores
+		currentMemoryUsage = c.Usage.Memory().Value() // Memory in bytes
 	}
 
 	container := deployment.Spec.Template.Spec.Containers[0]
 
-	requestsCPU := float64(0)
-	requestsMem := float64(0)
 	limitsCPU := float64(0)
 	limitsMem := float64(0)
-
-	if cpuReq, ok := container.Resources.Requests["cpu"]; ok {
-		requestsCPU = float64(cpuReq.MilliValue())
-	}
-	if memReq, ok := container.Resources.Requests["memory"]; ok {
-		requestsMem = float64(memReq.Value())
-	}
 
 	if cpuLim, ok := container.Resources.Limits["cpu"]; ok {
 		limitsCPU = float64(cpuLim.MilliValue())
@@ -87,10 +105,10 @@ func (repo KubernetesContainerRepository) GetMetrics(name string) (*ContainerMet
 	// Avoid division by zero
 	var cpuUsage, memUsage float64
 	if limitsCPU > 0 {
-		cpuUsage = (requestsCPU / limitsCPU) * 100
+		cpuUsage = (float64(currentCpuUsage) / limitsCPU) * 100
 	}
 	if limitsMem > 0 {
-		memUsage = (requestsMem / limitsMem) * 100
+		memUsage = (float64(currentMemoryUsage) / limitsMem) * 100
 	}
 
 	return &ContainerMetrics{
@@ -213,24 +231,24 @@ func (cluster KubernetesContainerRepository) Create(container *Container) (*Cont
 			Replicas: &container.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"app": "test",
+					"app": container.Name,
 				},
 			},
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app": "test",
+						"app": container.Name,
 					},
 				},
 				Spec: apiv1.PodSpec{
 					Containers: []apiv1.Container{
 						{
-							Name:  "test",
+							Name:  container.Name,
 							Image: container.ImageTag,
 							Ports: []apiv1.ContainerPort{
 								{
 									ContainerPort: container.MappedPort,
-									Name:          "test-port",
+									Name:          "internal-port",
 								},
 							},
 							Resources: apiv1.ResourceRequirements{
@@ -266,7 +284,7 @@ func (cluster KubernetesContainerRepository) Create(container *Container) (*Cont
 		Spec: apiv1.ServiceSpec{
 			Type: apiv1.ServiceTypeNodePort,
 			Selector: map[string]string{
-				"app": "test",
+				"app": container.Name,
 			},
 			Ports: []apiv1.ServicePort{
 				{
